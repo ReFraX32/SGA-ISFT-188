@@ -1,49 +1,104 @@
 {% extends 'gestion/base.html' %}
 
-{% block title %}Buscador de Alumnos DNI — ISFT 188{% endblock %}
+{% block title %}Buscador de Alumnos — ISFT N° 188{% endblock %}
 
 {% block content %}
 <div class="space-y-6">
 
-    <!-- Header Section -->
-    <div class="flex flex-col md:flex-row md:items-center justify-between gap-4">
-        <div>
-            <h2 class="text-2xl md:text-3xl font-extrabold tracking-tight flex items-center gap-2">
-                <span class="material-symbols-outlined text-indigo-500 text-3xl">person_search</span>
-                Buscador de Alumnos por DNI / Nombre
-            </h2>
-            <p class="text-sm text-slate-400 mt-1">
-                Consulte la trayectoria y estado académico integral de los estudiantes del instituto.
-            </p>
-        </div>
-        <div class="flex items-center gap-3">
-            <div class="glass-card px-4 py-2.5 rounded-xl flex items-center gap-3">
-                <span class="material-symbols-outlined text-indigo-500 text-2xl">group</span>
-                <div>
-                    <div class="text-[11px] text-slate-400 uppercase font-bold tracking-wider">Total Alumnos</div>
-                    <div class="text-lg font-black text-indigo-500 leading-none mt-0.5">{{ total_alumnos_sistema }}</div>
+    <!-- Header / Banner de Acción (z-30) -->
+    <div class="glass-card p-6 md:p-8 rounded-3xl relative shadow-2xl z-30">
+        <div class="relative z-10 flex flex-col md:flex-row md:items-center justify-between gap-6">
+            <div class="space-y-1">
+                <h1 class="text-2xl md:text-3xl font-black tracking-tight theme-text-main">
+                    Buscador de Alumnos y Estado Académico
+                </h1>
+                <p class="text-xs md:text-sm theme-text-muted max-w-2xl">
+                    Consultá el legajo, trayectoria curricular, calificaciones y situación académica de los estudiantes.
+                </p>
+            </div>
+
+            <!-- Botones de Acción Global (Cargar Alumnos e Importar / Libro Matriz) -->
+            <div class="flex items-center gap-3 flex-wrap">
+                
+                <!-- Botón 1: Cargar Alumnos desde Excel -->
+                <button 
+                    type="button" 
+                    onclick="abrirModalImportar()"
+                    class="bg-gradient-to-r from-indigo-600 to-indigo-700 hover:from-indigo-500 hover:to-indigo-600 text-white font-bold py-2.5 px-4 rounded-xl shadow-lg shadow-indigo-600/30 transition-all flex items-center gap-2 text-xs cursor-pointer"
+                >
+                    <span class="material-symbols-outlined text-sm">upload_file</span>
+                    <span>Cargar Alumnos (.xlsx)</span>
+                </button>
+
+                <!-- Botón 2: Generar Libro Matriz con Dropdown -->
+                <div class="relative inline-block text-left z-50" id="dropdownLibroMatrizContainer">
+                    <button 
+                        type="button" 
+                        onclick="toggleDropdownMatriz()" 
+                        class="bg-gradient-to-r from-emerald-600 to-emerald-700 hover:from-emerald-500 hover:to-emerald-600 text-white font-bold py-2.5 px-4 rounded-xl shadow-lg shadow-emerald-600/30 transition-all flex items-center gap-2 text-xs cursor-pointer"
+                    >
+                        <span class="material-symbols-outlined text-sm">table_view</span>
+                        <span>Generar Libro Matriz (.xlsx)</span>
+                        <span class="material-symbols-outlined text-xs">expand_more</span>
+                    </button>
+                    
+                    <!-- Dropdown Menú Flotante Adaptativo (Light & Dark) con alto z-index -->
+                    <div 
+                        id="dropdownLibroMatriz" 
+                        class="hidden absolute right-0 mt-2 w-80 rounded-2xl shadow-2xl glass-dropdown z-50 p-2 space-y-1 backdrop-blur-xl animate-in fade-in duration-150"
+                        style="max-height: 380px; overflow-y: auto;"
+                    >
+                        <div class="px-3 py-2 text-[11px] font-bold theme-text-muted uppercase tracking-wider border-b theme-border">
+                            Seleccioná la carrera para la matriz
+                        </div>
+                        <button 
+                            type="button" 
+                            onclick="descargarMatrizConCarga('{% url 'gestion:descargar_libro_matriz' %}', 'Técnico Superior en Energía')"
+                            class="w-full flex items-center justify-between px-3 py-2 text-xs rounded-xl hover:bg-emerald-500/20 text-emerald-500 font-bold transition-colors cursor-pointer text-left"
+                        >
+                            <span>Energía con Orientación Ind.</span>
+                            <span class="material-symbols-outlined text-xs">download</span>
+                        </button>
+                        {% for c in carreras %}
+                        <button 
+                            type="button" 
+                            onclick="descargarMatrizConCarga('{% url 'gestion:descargar_libro_matriz_carrera' c.codigo_carrera %}', '{{ c.nombre_carrera }}')"
+                            class="w-full flex items-center justify-between px-3 py-2 text-xs rounded-xl dropdown-item font-medium transition-colors cursor-pointer text-left"
+                        >
+                            <span class="truncate pr-2">{{ c.nombre_carrera }}</span>
+                            <span class="material-symbols-outlined text-xs opacity-60">download</span>
+                        </button>
+                        {% endfor %}
+                    </div>
                 </div>
             </div>
         </div>
     </div>
 
-    <!-- Search & Filters Panel (Formulario POST Seguro con CSRF) -->
-    <div class="glass-card p-4 md:p-6 rounded-2xl shadow-xl space-y-4">
-        <form method="POST" action="{% url 'gestion:buscador' %}" class="space-y-4" id="buscadorForm">
+    <!-- Search & Filter Card (z-10) -->
+    <div class="glass-card p-6 rounded-2xl shadow-xl relative z-10">
+        <form method="POST" action="{% url 'gestion:buscador' %}" id="buscadorForm" class="space-y-4">
             {% csrf_token %}
+            <input type="hidden" name="page" id="pageInput" value="{{ page_obj.number }}">
             
-            <!-- Fila Principal: Búsqueda por Texto -->
+            <!-- Barra de Búsqueda Principal -->
             <div class="relative">
-                <span class="material-symbols-outlined absolute left-3.5 top-1/2 -translate-y-1/2 text-slate-400">search</span>
+                <span class="absolute inset-y-0 left-0 flex items-center pl-4 pointer-events-none theme-text-muted">
+                    <span class="material-symbols-outlined">search</span>
+                </span>
                 <input 
                     type="text" 
                     name="q" 
-                    id="searchInput" 
+                    id="searchInput"
                     value="{{ query }}"
-                    placeholder="Escriba DNI, Nombre, Apellido o Legajo del alumno..."
-                    class="w-full rounded-xl pl-11 pr-4 py-3 text-sm font-semibold shadow-inner focus:ring-2 focus:ring-indigo-500"
-                    autocomplete="off"
-                />
+                    placeholder="Buscar por DNI, CUIL, Nombre, Apellido, Legajo o Localidad..."
+                    class="w-full pl-12 pr-28 py-3.5 rounded-2xl text-sm font-medium transition-all shadow-inner"
+                >
+                <div class="absolute inset-y-0 right-1.5 flex items-center">
+                    <button type="submit" class="bg-indigo-600 hover:bg-indigo-500 text-white text-xs font-bold py-2 px-4 rounded-xl shadow-md transition-all cursor-pointer">
+                        Buscar
+                    </button>
+                </div>
             </div>
 
             <!-- Fila de Filtros Combinados -->
@@ -51,8 +106,8 @@
                 
                 <!-- 1. Filtro Carrera -->
                 <div>
-                    <label class="block text-[11px] font-bold uppercase tracking-wider text-slate-400 mb-1">Carrera</label>
-                    <select name="carrera" class="w-full rounded-xl px-3 py-2.5 text-xs font-semibold cursor-pointer">
+                    <label class="block text-[11px] font-bold uppercase tracking-wider theme-text-muted mb-1">Carrera</label>
+                    <select name="carrera" onchange="resetPageAndSubmit()" class="w-full rounded-xl px-3 py-2 text-xs font-semibold cursor-pointer">
                         <option value="">Todas las Carreras</option>
                         {% for c in carreras %}
                             <option value="{{ c.codigo_carrera }}" {% if c.codigo_carrera == carrera_id %}selected{% endif %}>
@@ -62,122 +117,142 @@
                     </select>
                 </div>
 
-                <!-- 2. Filtro Situación Académica -->
+                <!-- 2. Filtro Año de Cursada -->
                 <div>
-                    <label class="block text-[11px] font-bold uppercase tracking-wider text-slate-400 mb-1">Condición Académica</label>
-                    <select name="situacion" class="w-full rounded-xl px-3 py-2.5 text-xs font-semibold cursor-pointer">
-                        <option value="">Todas las Situaciones</option>
-                        <option value="Promocionado" {% if situacion_filtro == 'Promocionado' %}selected{% endif %}>Promocionados</option>
-                        <option value="Final" {% if situacion_filtro == 'Final' %}selected{% endif %}>A Final</option>
-                        <option value="Regular" {% if situacion_filtro == 'Regular' %}selected{% endif %}>Regulares</option>
-                        <option value="Libre" {% if situacion_filtro == 'Libre' %}selected{% endif %}>Libres / Recursa</option>
+                    <label class="block text-[11px] font-bold uppercase tracking-wider theme-text-muted mb-1">Año de Cursada</label>
+                    <select name="anio" onchange="resetPageAndSubmit()" class="w-full rounded-xl px-3 py-2 text-xs font-semibold cursor-pointer">
+                        <option value="">Todos los Años</option>
+                        <option value="1" {% if anio_filtro == '1' %}selected{% endif %}>1° Año</option>
+                        <option value="2" {% if anio_filtro == '2' %}selected{% endif %}>2° Año</option>
+                        <option value="3" {% if anio_filtro == '3' %}selected{% endif %}>3° Año</option>
                     </select>
                 </div>
 
-                <!-- 3. Filtro Asistencia -->
+                <!-- 3. Filtro Localidad -->
                 <div>
-                    <label class="block text-[11px] font-bold uppercase tracking-wider text-slate-400 mb-1">Rango Asistencia %</label>
-                    <select name="asistencia" class="w-full rounded-xl px-3 py-2.5 text-xs font-semibold cursor-pointer">
-                        <option value="">Cualquier % Asistencia</option>
-                        <option value="alta" {% if asistencia_filtro == 'alta' %}selected{% endif %}>≥ 80% (Buena Asistencia)</option>
-                        <option value="media" {% if asistencia_filtro == 'media' %}selected{% endif %}>60% a 79% (Asistencia Media)</option>
-                        <option value="baja" {% if asistencia_filtro == 'baja' %}selected{% endif %}>&lt; 60% (Riesgo / Baja)</option>
+                    <label class="block text-[11px] font-bold uppercase tracking-wider theme-text-muted mb-1">Localidad</label>
+                    <select name="localidad" onchange="resetPageAndSubmit()" class="w-full rounded-xl px-3 py-2 text-xs font-semibold cursor-pointer">
+                        <option value="">Todas las Localidades</option>
+                        {% for loc in localidades %}
+                            <option value="{{ loc }}" {% if loc == localidad_filtro %}selected{% endif %}>
+                                {{ loc }}
+                            </option>
+                        {% endfor %}
                     </select>
                 </div>
 
                 <!-- 4. Filtro Ordenamiento -->
                 <div>
-                    <label class="block text-[11px] font-bold uppercase tracking-wider text-slate-400 mb-1">Ordenar Por</label>
-                    <select name="orden" class="w-full rounded-xl px-3 py-2.5 text-xs font-semibold cursor-pointer">
+                    <label class="block text-[11px] font-bold uppercase tracking-wider theme-text-muted mb-1">Ordenar Por</label>
+                    <select name="orden" onchange="resetPageAndSubmit()" class="w-full rounded-xl px-3 py-2 text-xs font-semibold cursor-pointer">
                         <option value="apellido" {% if orden_filtro == 'apellido' %}selected{% endif %}>Apellido (A-Z)</option>
                         <option value="nombre" {% if orden_filtro == 'nombre' %}selected{% endif %}>Nombre (A-Z)</option>
-                        <option value="asistencia_desc" {% if orden_filtro == 'asistencia_desc' %}selected{% endif %}>Mayor Asistencia %</option>
-                        <option value="asistencia_asc" {% if orden_filtro == 'asistencia_asc' %}selected{% endif %}>Menor Asistencia %</option>
-                        <option value="promocionadas_desc" {% if orden_filtro == 'promocionadas_desc' %}selected{% endif %}>Más Promocionadas</option>
+                        <option value="dni" {% if orden_filtro == 'dni' %}selected{% endif %}>N° DNI</option>
+                        <option value="carrera" {% if orden_filtro == 'carrera' %}selected{% endif %}>Carrera</option>
+                        <option value="edad_asc" {% if orden_filtro == 'edad_asc' %}selected{% endif %}>Menor Edad</option>
+                        <option value="edad_desc" {% if orden_filtro == 'edad_desc' %}selected{% endif %}>Mayor Edad</option>
+                        <option value="localidad" {% if orden_filtro == 'localidad' %}selected{% endif %}>Localidad (A-Z)</option>
                     </select>
                 </div>
             </div>
 
-            <!-- Botones de Acción -->
-            <div class="flex items-center justify-end gap-2 pt-2 border-t border-white/10">
-                {% if query or carrera_id or situacion_filtro or asistencia_filtro or orden_filtro != 'apellido' %}
-                <button type="button" onclick="limpiarFiltros()" class="bg-slate-500/20 hover:bg-slate-500/30 text-slate-300 font-semibold py-2.5 px-4 rounded-xl transition-all flex items-center gap-1 text-xs cursor-pointer" title="Restablecer Filtros">
-                    <span class="material-symbols-outlined text-sm">restart_alt</span>
-                    <span>Limpiar Filtros</span>
-                </button>
-                {% endif %}
+            <!-- Botones y Selector de Tamaño de Página -->
+            <div class="flex flex-wrap items-center justify-between gap-3 pt-3 border-t theme-border text-xs">
+                
+                <!-- Selector de Elementos por Página Ampliado con Flecha Visible -->
+                <div class="flex items-center gap-2.5 theme-text-main">
+                    <span class="theme-text-muted font-medium">Mostrar por página:</span>
+                    <select name="page_size" onchange="resetPageAndSubmit()" class="min-w-[85px] pl-3.5 pr-8 py-1.5 rounded-xl text-xs font-bold cursor-pointer text-indigo-500 shadow-sm">
+                        <option value="10" {% if page_size == 10 %}selected{% endif %}>10</option>
+                        <option value="25" {% if page_size == 25 %}selected{% endif %}>25</option>
+                        <option value="50" {% if page_size == 50 %}selected{% endif %}>50</option>
+                        <option value="100" {% if page_size == 100 %}selected{% endif %}>100</option>
+                    </select>
+                </div>
 
-                <button type="submit" class="bg-gradient-to-r from-indigo-600 to-indigo-700 hover:from-indigo-500 hover:to-indigo-600 text-white font-bold py-2.5 px-6 rounded-xl shadow-lg shadow-indigo-600/30 transition-all flex items-center justify-center gap-2 text-xs cursor-pointer">
-                    <span class="material-symbols-outlined text-sm">filter_list</span>
-                    <span>Aplicar Filtros</span>
-                </button>
+                <div class="flex items-center gap-2">
+                    {% if query or carrera_id or anio_filtro or localidad_filtro or orden_filtro != 'apellido' %}
+                    <button type="button" onclick="limpiarFiltros()" class="bg-slate-500/10 hover:bg-slate-500/20 theme-text-main font-semibold py-2 px-3.5 rounded-xl border theme-border transition-all flex items-center gap-1 cursor-pointer" title="Restablecer Filtros">
+                        <span class="material-symbols-outlined text-sm">restart_alt</span>
+                        <span>Limpiar</span>
+                    </button>
+                    {% endif %}
+
+                    <button type="submit" class="bg-gradient-to-r from-indigo-600 to-indigo-700 hover:from-indigo-500 hover:to-indigo-600 text-white font-bold py-2 px-5 rounded-xl shadow-lg shadow-indigo-600/30 transition-all flex items-center gap-2 cursor-pointer">
+                        <span class="material-symbols-outlined text-sm">filter_list</span>
+                        <span>Aplicar Filtros</span>
+                    </button>
+                </div>
             </div>
         </form>
     </div>
 
-    <!-- Results Table Container -->
-    <div class="glass-card rounded-2xl overflow-hidden shadow-2xl">
-        <div class="px-6 py-4 border-b border-white/10 flex flex-wrap items-center justify-between gap-2">
-            <h3 class="text-base font-bold flex items-center gap-2">
+    <!-- Results Table Container (z-0) -->
+    <div class="glass-card rounded-2xl overflow-hidden shadow-2xl relative z-0">
+        <div class="px-6 py-4 border-b theme-border flex flex-wrap items-center justify-between gap-2">
+            <h3 class="text-base font-bold flex items-center gap-2 theme-text-main">
                 <span class="material-symbols-outlined text-indigo-500">format_list_bulleted</span>
-                Resultados Obtenidos ({{ total_resultados }})
+                <span>Resultados ({{ total_resultados }})</span>
             </h3>
-            <span class="text-xs text-slate-400">Deslice horizontalmente la tabla si es necesario</span>
+            
+            {% if total_resultados > 0 %}
+            <span class="text-xs theme-text-muted">
+                Mostrando <strong class="text-indigo-500">{{ page_obj.start_index }}</strong> a <strong class="text-indigo-500">{{ page_obj.end_index }}</strong> de {{ total_resultados }} estudiantes
+            </span>
+            {% endif %}
         </div>
 
         {% if alumnos_list %}
-        <!-- Responsive Full Width Scroll Container -->
         <div class="w-full overflow-x-auto">
             <table class="w-full text-left text-sm min-w-[950px]">
-                <thead class="bg-slate-900/40 uppercase text-[11px] tracking-wider font-bold border-b border-white/10 opacity-80">
+                <thead class="theme-table-header uppercase text-[11px] tracking-wider font-bold border-b theme-border">
                     <tr>
-                        <th class="py-4 px-5 min-w-[140px]">DNI / Legajo</th>
-                        <th class="py-4 px-5 min-w-[240px]">Estudiante</th>
-                        <th class="py-4 px-5 min-w-[260px]">Carrera(s)</th>
-                        <th class="py-4 px-5 text-center min-w-[180px]">Situaciones Cursada</th>
-                        <th class="py-4 px-5 text-center min-w-[110px]">Asistencia %</th>
-                        <th class="py-4 px-5 text-center min-w-[160px]">Acción</th>
+                        <th class="py-3.5 px-4 min-w-[150px]">DNI / CUIL</th>
+                        <th class="py-3.5 px-4 min-w-[220px]">Estudiante</th>
+                        <th class="py-3.5 px-4 min-w-[250px]">Carrera(s) y Año</th>
+                        <th class="py-3.5 px-3 text-center min-w-[90px]">Edad</th>
+                        <th class="py-3.5 px-4 min-w-[160px]">Localidad</th>
+                        <th class="py-3.5 px-4 text-center min-w-[140px]">Acciones</th>
                     </tr>
                 </thead>
-                <tbody class="divide-y divide-white/5 font-medium">
+                <tbody class="theme-table-divide font-medium">
                     {% for item in alumnos_list %}
-                    <tr class="hover:bg-indigo-500/5 transition-colors group">
-                        <td class="py-4 px-5 font-mono text-indigo-500 font-bold whitespace-nowrap">
-                            <div>{{ item.alumno.persona.dni }}</div>
-                            <div class="text-xs text-slate-400 font-sans font-normal">{{ item.alumno.legajo }}</div>
+                    <tr class="theme-table-row transition-colors group">
+                        <td class="py-3.5 px-4 font-mono whitespace-nowrap">
+                            <div class="text-indigo-500 font-bold text-sm">{{ item.persona.dni }}</div>
+                            <div class="text-[11px] theme-text-muted font-sans">CUIL: {{ item.cuil }}</div>
                         </td>
-                        <td class="py-4 px-5">
-                            <div class="font-bold text-base group-hover:text-indigo-500 transition-colors">
-                                {{ item.alumno.persona.apellido }}, {{ item.alumno.persona.nombre }}
+                        <td class="py-3.5 px-4">
+                            <div class="font-bold text-sm theme-text-main group-hover:text-indigo-500 transition-colors">
+                                {{ item.persona.apellido }}, {{ item.persona.nombre }}
                             </div>
-                            <div class="text-xs text-slate-400">
-                                {{ item.alumno.persona.mail|default:"Sin mail" }}
+                            <div class="text-xs theme-text-muted truncate max-w-[220px]">
+                                {{ item.persona.mail|default:"-" }}
                             </div>
                         </td>
-                        <td class="py-4 px-5">
-                            <span class="text-xs px-3 py-1 rounded-lg bg-indigo-500/15 text-indigo-500 border border-indigo-500/30 font-semibold inline-block">
+                        <td class="py-3.5 px-4">
+                            <span class="text-xs px-2.5 py-1 rounded-lg bg-indigo-500/15 text-indigo-500 border border-indigo-500/30 font-semibold inline-block">
                                 {{ item.carreras }}
                             </span>
                         </td>
-                        <td class="py-4 px-5 text-center">
-                            <div class="inline-flex items-center justify-center gap-1.5">
-                                <span class="px-2 py-0.5 rounded text-xs bg-emerald-500/20 text-emerald-500 border border-emerald-500/30 font-bold" title="Promocionadas">{{ item.promocionadas }} Prom.</span>
-                                <span class="px-2 py-0.5 rounded text-xs bg-amber-500/20 text-amber-500 border border-amber-500/30 font-bold" title="Finales">{{ item.finales }} Final</span>
-                                <span class="px-2 py-0.5 rounded text-xs bg-slate-700/60 text-slate-300 font-bold" title="Total">{{ item.total_cursadas }} Total</span>
-                            </div>
+                        <td class="py-3.5 px-3 text-center font-bold theme-text-main">
+                            {% if item.edad is not None %}
+                                <span>{{ item.edad }} <span class="text-[10px] theme-text-muted font-normal">años</span></span>
+                            {% else %}
+                                <span class="theme-text-muted text-xs italic">-</span>
+                            {% endif %}
                         </td>
-                        <td class="py-4 px-5 text-center font-bold text-base">
-                            <span class="{% if item.asistencia_avg >= 80 %}text-emerald-500{% elif item.asistencia_avg >= 60 %}text-amber-500{% else %}text-rose-500{% endif %}">
-                                {{ item.asistencia_avg }}%
-                            </span>
+                        <td class="py-3.5 px-4 text-xs theme-text-muted">
+                            {{ item.localidad }}
                         </td>
-                        <td class="py-4 px-5 text-center whitespace-nowrap">
+                        <td class="py-3.5 px-4 text-center whitespace-nowrap">
                             <button 
-                                onclick="cargarEstadoAcademico('{{ item.alumno.persona.dni }}')"
-                                class="inline-flex items-center gap-1.5 bg-indigo-600 hover:bg-indigo-500 text-white text-xs font-bold py-2.5 px-4 rounded-xl shadow-md shadow-indigo-600/20 transition-all hover:scale-105 cursor-pointer"
+                                onclick="cargarEstadoAcademico('{{ item.persona.dni }}')"
+                                class="inline-flex items-center gap-1 bg-indigo-600 hover:bg-indigo-500 text-white text-xs font-bold py-2 px-3.5 rounded-xl shadow-md shadow-indigo-600/20 transition-all hover:scale-105 cursor-pointer"
+                                title="Ver Expediente Académico"
                             >
-                                <span class="material-symbols-outlined text-sm">badge</span>
-                                <span>Estado Académico</span>
+                                <span class="material-symbols-outlined text-xs">badge</span>
+                                <span>Expediente</span>
                             </button>
                         </td>
                     </tr>
@@ -185,56 +260,225 @@
                 </tbody>
             </table>
         </div>
+
+        <!-- Paginación Interactiva -->
+        {% if page_obj.has_other_pages %}
+        <div class="px-6 py-4 border-t theme-border flex flex-wrap items-center justify-between gap-3" style="background: var(--card-inner-bg);">
+            <div class="text-xs theme-text-muted">
+                Página <strong class="theme-text-main">{{ page_obj.number }}</strong> de <strong class="theme-text-main">{{ page_obj.paginator.num_pages }}</strong>
+            </div>
+
+            <div class="flex items-center gap-1.5">
+                {% if page_obj.has_previous %}
+                <button type="button" onclick="irAPagina(1)" class="p-2 rounded-lg bg-slate-500/10 hover:bg-slate-500/20 theme-text-main text-xs transition-colors cursor-pointer" title="Primera Página">
+                    <span class="material-symbols-outlined text-sm">first_page</span>
+                </button>
+                <button type="button" onclick="irAPagina({{ page_obj.previous_page_number }})" class="px-3 py-1.5 rounded-lg bg-slate-500/10 hover:bg-slate-500/20 theme-text-main text-xs font-semibold transition-colors flex items-center gap-1 cursor-pointer">
+                    <span class="material-symbols-outlined text-sm">chevron_left</span>
+                    <span>Anterior</span>
+                </button>
+                {% endif %}
+
+                <!-- Números de Página Centrados -->
+                <div class="flex items-center gap-1 mx-1">
+                    {% for p in page_obj.paginator.page_range %}
+                        {% if p >= page_obj.number|add:"-2" and p <= page_obj.number|add:"2" %}
+                            {% if p == page_obj.number %}
+                            <span class="w-8 h-8 rounded-lg bg-indigo-600 text-white font-bold text-xs flex items-center justify-center shadow-md shadow-indigo-600/30">
+                                {{ p }}
+                            </span>
+                            {% else %}
+                            <button type="button" onclick="irAPagina({{ p }})" class="w-8 h-8 rounded-lg bg-slate-500/10 hover:bg-slate-500/20 theme-text-main text-xs font-medium transition-colors cursor-pointer">
+                                {{ p }}
+                            </button>
+                            {% endif %}
+                        {% endif %}
+                    {% endfor %}
+                </div>
+
+                {% if page_obj.has_next %}
+                <button type="button" onclick="irAPagina({{ page_obj.next_page_number }})" class="px-3 py-1.5 rounded-lg bg-slate-500/10 hover:bg-slate-500/20 theme-text-main text-xs font-semibold transition-colors flex items-center gap-1 cursor-pointer">
+                    <span>Siguiente</span>
+                    <span class="material-symbols-outlined text-sm">chevron_right</span>
+                </button>
+                <button type="button" onclick="irAPagina({{ page_obj.paginator.num_pages }})" class="p-2 rounded-lg bg-slate-500/10 hover:bg-slate-500/20 theme-text-main text-xs transition-colors cursor-pointer" title="Última Página">
+                    <span class="material-symbols-outlined text-sm">last_page</span>
+                </button>
+                {% endif %}
+            </div>
+        </div>
+        {% endif %}
+
         {% else %}
         <div class="text-center py-12 px-4">
-            <span class="material-symbols-outlined text-5xl text-slate-400 mb-2">search_off</span>
-            <h4 class="text-lg font-bold">No se encontraron estudiantes</h4>
-            <p class="text-sm text-slate-400 max-w-md mx-auto mt-1">
-                Intente ajustar los filtros de búsqueda o el DNI ingresado.
+            <span class="material-symbols-outlined text-5xl theme-text-muted mb-2">search_off</span>
+            <h4 class="text-lg font-bold theme-text-main">No se encontraron estudiantes</h4>
+            <p class="text-sm theme-text-muted max-w-md mx-auto mt-1">
+                Probá ajustando los filtros de búsqueda, carrera, año o el DNI/CUIL ingresado.
             </p>
         </div>
         {% endif %}
     </div>
 </div>
 
-<!-- MODAL ESTADO ACADÉMICO DETALLADO -->
-<div id="modalEstado" class="fixed inset-0 z-50 hidden flex items-center justify-center p-4 bg-slate-950/80 backdrop-blur-md">
-    <div class="glass-modal w-full max-w-4xl rounded-2xl overflow-hidden shadow-2xl max-h-[90vh] flex flex-col animate-in fade-in duration-200">
+<!-- MODAL ESTADO ACADÉMICO DETALLADO (z-[9999] para cubrir y aplicar blur sobre toda la pantalla) -->
+<div id="modalEstado" class="fixed inset-0 z-[9999] hidden flex items-center justify-center p-3 md:p-6 bg-black/75 backdrop-blur-md">
+    <div class="glass-modal w-full max-w-4xl rounded-3xl overflow-hidden max-h-[92vh] flex flex-col shadow-2xl border theme-border animate-in zoom-in-95 duration-200">
         
         <!-- Modal Header -->
-        <div class="px-6 py-4 border-b border-white/10 flex items-center justify-between bg-slate-900/40">
-            <div class="flex items-center gap-3">
-                <div class="w-10 h-10 rounded-xl bg-indigo-600 flex items-center justify-center text-white font-black text-xl">
-                    <span class="material-symbols-outlined">assignment_ind</span>
+        <div class="px-5 py-4 border-b theme-border flex items-center justify-between gap-3" style="background: var(--header-bg);">
+            <div class="flex items-center gap-3 min-w-0">
+                <div class="w-10 h-10 shrink-0 rounded-xl bg-indigo-600 flex items-center justify-center text-white font-black text-xl shadow-lg shadow-indigo-600/30">
+                    <span class="material-symbols-outlined">badge</span>
                 </div>
-                <div>
-                    <h3 id="modalNombreAlumno" class="text-lg font-black">Cargando datos...</h3>
-                    <p id="modalDniLegajo" class="text-xs text-indigo-400 font-mono">DNI: - | Legajo: -</p>
+                <div class="min-w-0">
+                    <h3 id="modalNombreAlumno" class="text-base md:text-lg font-black theme-text-main leading-tight break-words">Cargando expediente...</h3>
+                    <div id="modalDniLegajo" class="text-xs text-indigo-500 font-mono font-bold flex flex-wrap items-center gap-x-2 gap-y-0.5 mt-0.5">
+                        <span>DNI: -</span> <span>•</span> <span>CUIL: -</span> <span>•</span> <span>Legajo: -</span>
+                    </div>
                 </div>
             </div>
-            <button onclick="cerrarModal()" class="text-slate-400 hover:text-white p-2 rounded-lg hover:bg-white/10 transition-colors cursor-pointer">
+            <button onclick="cerrarModal()" class="theme-text-muted hover:text-indigo-500 p-2 rounded-lg hover:bg-indigo-500/10 transition-colors cursor-pointer shrink-0">
                 <span class="material-symbols-outlined">close</span>
             </button>
         </div>
 
         <!-- Modal Content Body -->
-        <div id="modalContent" class="p-6 overflow-y-auto space-y-6 flex-1">
-            <!-- Spinner placeholder -->
+        <div id="modalContent" class="p-5 md:p-6 overflow-y-auto space-y-6 flex-1 theme-text-main">
             <div class="text-center py-12">
                 <div class="inline-block animate-spin rounded-full h-10 w-10 border-4 border-indigo-500 border-t-transparent"></div>
-                <p class="text-sm text-slate-400 mt-3 font-medium">Obteniendo expediente del estudiante desde la base de datos...</p>
+                <p class="text-sm theme-text-muted mt-3 font-medium">Obteniendo expediente completo del estudiante...</p>
             </div>
         </div>
 
         <!-- Modal Footer -->
-        <div class="px-6 py-4 border-t border-white/10 flex items-center justify-between bg-slate-900/40">
-            <a id="btnImprimirAnalitico" href="#" target="_blank" class="inline-flex items-center gap-2 bg-slate-800 hover:bg-slate-700 text-slate-200 text-xs font-bold py-2.5 px-4 rounded-xl border border-white/10 transition-all">
+        <div class="px-5 py-3.5 border-t theme-border flex items-center justify-between gap-3" style="background: var(--header-bg);">
+            <a id="btnImprimirAnalitico" href="#" target="_blank" class="inline-flex items-center gap-2 bg-slate-500/10 hover:bg-slate-500/20 theme-text-main text-xs font-bold py-2 px-3.5 rounded-xl border theme-border transition-all">
                 <span class="material-symbols-outlined text-sm">print</span>
-                <span>Imprimir / Exportar Constancia</span>
+                <span>Imprimir Constancia</span>
             </a>
-            <button onclick="cerrarModal()" class="bg-indigo-600 hover:bg-indigo-500 text-white text-xs font-bold py-2.5 px-5 rounded-xl transition-all cursor-pointer">
+            <button onclick="cerrarModal()" class="bg-indigo-600 hover:bg-indigo-500 text-white text-xs font-bold py-2 px-5 rounded-xl transition-all cursor-pointer">
                 Cerrar
             </button>
+        </div>
+    </div>
+</div>
+
+<!-- MODAL PARA IMPORTAR ALUMNOS DESDE EXCEL (z-[9999]) -->
+<div id="modalImportarAlumnos" class="fixed inset-0 z-[9999] hidden flex items-center justify-center p-4 bg-black/75 backdrop-blur-md">
+    <div class="glass-modal w-full max-w-xl rounded-3xl p-6 md:p-8 space-y-6 shadow-2xl border theme-border animate-in zoom-in-95 duration-200">
+        
+        <!-- Header del Modal -->
+        <div class="flex items-center justify-between border-b pb-4 theme-border">
+            <div class="flex items-center gap-3">
+                <div class="w-10 h-10 rounded-xl bg-indigo-600 flex items-center justify-center text-white font-black text-xl shadow-lg shadow-indigo-600/30">
+                    <span class="material-symbols-outlined">upload_file</span>
+                </div>
+                <div>
+                    <h3 class="text-lg font-black theme-text-main leading-tight">Cargar Alumnos desde Excel</h3>
+                    <p class="text-xs theme-text-muted">Importá o actualizá la nómina de estudiantes del instituto.</p>
+                </div>
+            </div>
+            <button onclick="cerrarModalImportar()" class="theme-text-muted hover:text-indigo-500 p-2 rounded-lg hover:bg-indigo-500/10 transition-colors cursor-pointer">
+                <span class="material-symbols-outlined">close</span>
+            </button>
+        </div>
+
+        <!-- Caja de Descarga de Plantilla Oficial -->
+        <div class="p-4 rounded-2xl flex items-center justify-between gap-4 border" style="background: var(--card-inner-bg); border-color: var(--card-inner-border);">
+            <div class="space-y-0.5">
+                <span class="text-xs font-bold theme-text-main flex items-center gap-1.5">
+                    <span class="material-symbols-outlined text-emerald-500 text-base">description</span>
+                    <span>¿No tenés el formato oficial?</span>
+                </span>
+                <p class="text-[11px] theme-text-muted leading-tight">
+                    Descargá la plantilla con ejemplos claros para completarla fácilmente.
+                </p>
+            </div>
+            <a 
+                href="{% url 'gestion:descargar_plantilla_alumnos' %}" 
+                class="bg-emerald-600 hover:bg-emerald-500 text-white text-xs font-bold py-2 px-3.5 rounded-xl shadow-md transition-all flex items-center gap-1.5 shrink-0"
+            >
+                <span class="material-symbols-outlined text-xs">download</span>
+                <span>Plantilla (.xlsx)</span>
+            </a>
+        </div>
+
+        <!-- Formulario de Subida -->
+        <form id="formImportarExcel" onsubmit="enviarExcelAlumnos(event)" class="space-y-4">
+            {% csrf_token %}
+            
+            <div class="space-y-2">
+                <label class="block text-xs font-bold uppercase tracking-wider theme-text-muted">
+                    Seleccionar Archivo Excel (.xlsx / .xls)
+                </label>
+                <div class="border-2 border-dashed rounded-2xl p-6 text-center cursor-pointer transition-all hover:border-indigo-500" style="border-color: var(--glass-border);" onclick="document.getElementById('inputArchivoExcel').click()">
+                    <input 
+                        type="file" 
+                        name="archivo_excel" 
+                        id="inputArchivoExcel" 
+                        accept=".xlsx, .xls"
+                        class="hidden" 
+                        onchange="mostrarArchivoSeleccionado(this)"
+                    >
+                    <span class="material-symbols-outlined text-4xl text-indigo-500 mb-1">cloud_upload</span>
+                    <p id="labelArchivoNombre" class="text-xs font-bold theme-text-main">
+                        Hacé clic acá o arrastrá tu archivo Excel
+                    </p>
+                    <p class="text-[11px] theme-text-muted mt-0.5">Formatos aceptados: .xlsx o .xls</p>
+                </div>
+            </div>
+
+            <!-- Panel de Reporte de Resultados (Oculto inicialmente) -->
+            <div id="panelResultadoImportacion" class="hidden rounded-2xl p-4 space-y-3 text-xs border" style="background: var(--card-inner-bg); border-color: var(--card-inner-border);">
+                <!-- Contenido dinámico inyectado por JS -->
+            </div>
+
+            <!-- Botones de Acción -->
+            <div class="flex items-center justify-end gap-3 pt-2">
+                <button 
+                    type="button" 
+                    onclick="cerrarModalImportar()"
+                    class="bg-slate-500/10 hover:bg-slate-500/20 theme-text-main font-bold py-2.5 px-4 rounded-xl text-xs transition-colors cursor-pointer"
+                >
+                    Cancelar
+                </button>
+                <button 
+                    type="submit" 
+                    id="btnSubirExcel"
+                    class="bg-gradient-to-r from-indigo-600 to-indigo-700 hover:from-indigo-500 hover:to-indigo-600 text-white font-bold py-2.5 px-6 rounded-xl shadow-lg shadow-indigo-600/30 transition-all flex items-center gap-2 text-xs cursor-pointer"
+                >
+                    <span class="material-symbols-outlined text-sm">upload</span>
+                    <span>Procesar y Cargar</span>
+                </button>
+            </div>
+        </form>
+    </div>
+</div>
+
+<!-- MODAL / PANTALLA DE CARGA PARA GENERADOR DE LIBRO MATRIZ (z-[9999]) -->
+<div id="modalLoadingMatriz" class="fixed inset-0 z-[9999] hidden flex items-center justify-center p-4 bg-black/75 backdrop-blur-md">
+    <div class="glass-modal w-full max-w-md rounded-3xl p-8 text-center space-y-5 shadow-2xl border theme-border animate-in zoom-in-95 duration-200">
+        
+        <div class="relative w-20 h-20 mx-auto flex items-center justify-center">
+            <div class="absolute inset-0 rounded-2xl bg-emerald-500/20 animate-ping"></div>
+            <div class="relative w-20 h-20 rounded-2xl bg-gradient-to-tr from-emerald-600 to-emerald-500 flex items-center justify-center text-white shadow-xl shadow-emerald-500/30">
+                <span class="material-symbols-outlined text-4xl">table_view</span>
+            </div>
+        </div>
+
+        <div class="space-y-2">
+            <h3 class="text-lg font-black theme-text-main">
+                Generando Libro Matriz Oficial
+            </h3>
+            <p class="text-xs theme-text-muted max-w-xs mx-auto leading-relaxed">
+                Confeccionando las planillas multi-hoja, calificaciones y nómina de egresados para <span id="carreraLoadingNom" class="font-bold text-emerald-500 block mt-1">la Tecnicatura seleccionada</span>
+            </p>
+        </div>
+
+        <div class="flex items-center justify-center gap-2 text-xs font-bold text-emerald-500 pt-2">
+            <div class="w-4 h-4 border-2 border-emerald-500 border-t-transparent rounded-full animate-spin"></div>
+            <span>Generando archivo Excel (.xlsx)...</span>
         </div>
     </div>
 </div>
@@ -242,10 +486,175 @@
 
 {% block extra_scripts %}
 <script>
+    function toggleDropdownMatriz() {
+        const dd = document.getElementById('dropdownLibroMatriz');
+        dd.classList.toggle('hidden');
+    }
+
+    // Cerrar dropdown al hacer click fuera
+    document.addEventListener('click', function(e) {
+        const container = document.getElementById('dropdownLibroMatrizContainer');
+        const dd = document.getElementById('dropdownLibroMatriz');
+        if (container && !container.contains(e.target) && dd) {
+            dd.classList.add('hidden');
+        }
+    });
+
+    function abrirModalImportar() {
+        const modal = document.getElementById('modalImportarAlumnos');
+        const panel = document.getElementById('panelResultadoImportacion');
+        const label = document.getElementById('labelArchivoNombre');
+        const input = document.getElementById('inputArchivoExcel');
+        
+        input.value = '';
+        label.innerText = 'Hacé clic acá o arrastrá tu archivo Excel';
+        panel.classList.add('hidden');
+        panel.innerHTML = '';
+        modal.classList.remove('hidden');
+    }
+
+    function cerrarModalImportar() {
+        document.getElementById('modalImportarAlumnos').classList.add('hidden');
+    }
+
+    function mostrarArchivoSeleccionado(input) {
+        const label = document.getElementById('labelArchivoNombre');
+        if (input.files && input.files[0]) {
+            label.innerText = `📄 ${input.files[0].name} (${(input.files[0].size / 1024).toFixed(1)} KB)`;
+        } else {
+            label.innerText = 'Hacé clic acá o arrastrá tu archivo Excel';
+        }
+    }
+
+    function enviarExcelAlumnos(e) {
+        e.preventDefault();
+        const form = document.getElementById('formImportarExcel');
+        const input = document.getElementById('inputArchivoExcel');
+        const btn = document.getElementById('btnSubirExcel');
+        const panel = document.getElementById('panelResultadoImportacion');
+
+        if (!input.files || !input.files[0]) {
+            panel.classList.remove('hidden');
+            panel.innerHTML = `<div class="text-rose-500 font-bold">⚠️ Tenés que seleccionar un archivo Excel (.xlsx o .xls) antes de procesar.</div>`;
+            return;
+        }
+
+        const formData = new FormData(form);
+        btn.disabled = true;
+        btn.innerHTML = `<div class="w-4 h-4 border-2 border-white border-t-transparent rounded-full animate-spin"></div><span>Procesando...</span>`;
+
+        fetch('{% url "gestion:importar_alumnos" %}', {
+            method: 'POST',
+            body: formData,
+            headers: {
+                'X-CSRFToken': form.querySelector('[name=csrfmiddlewaretoken]').value
+            }
+        })
+        .then(res => res.json())
+        .then(data => {
+            btn.disabled = false;
+            btn.innerHTML = `<span class="material-symbols-outlined text-sm">upload</span><span>Procesar y Cargar</span>`;
+            panel.classList.remove('hidden');
+
+            if (data.success) {
+                let reportHtml = `
+                    <div class="p-3 rounded-xl bg-emerald-500/15 border border-emerald-500/30 text-emerald-500 font-bold space-y-1">
+                        <div class="flex items-center gap-1.5 text-sm">
+                            <span class="material-symbols-outlined text-base">check_circle</span>
+                            <span>¡Importación completada con éxito!</span>
+                        </div>
+                        <div class="text-xs font-normal theme-text-main">
+                            • Alumnos Nuevos Creados: <strong>${data.creados}</strong><br>
+                            • Alumnos Existentes Actualizados: <strong>${data.actualizados}</strong><br>
+                            • Filas Procesadas: <strong>${data.filas_procesadas}</strong>
+                        </div>
+                    </div>
+                `;
+
+                if (data.advertencias && data.advertencias.length > 0) {
+                    reportHtml += `
+                        <div class="p-2.5 rounded-xl bg-amber-500/15 border border-amber-500/30 text-amber-500 text-[11px] space-y-1">
+                            <strong class="block font-bold">Observaciones / Advertencias (${data.advertencias.length}):</strong>
+                            <ul class="list-disc pl-4 space-y-0.5">
+                                ${data.advertencias.map(a => `<li>${a}</li>`).join('')}
+                            </ul>
+                        </div>
+                    `;
+                }
+
+                if (data.errores && data.errores.length > 0) {
+                    reportHtml += `
+                        <div class="p-2.5 rounded-xl bg-rose-500/15 border border-rose-500/30 text-rose-500 text-[11px] space-y-1">
+                            <strong class="block font-bold">Filas con Errores Omitidas (${data.errores.length}):</strong>
+                            <ul class="list-disc pl-4 space-y-0.5">
+                                ${data.errores.map(err => `<li>${err}</li>`).join('')}
+                            </ul>
+                        </div>
+                    `;
+                }
+
+                reportHtml += `
+                    <button type="button" onclick="window.location.reload()" class="w-full bg-emerald-600 hover:bg-emerald-500 text-white font-bold py-2 rounded-xl text-xs transition-colors cursor-pointer mt-2">
+                        Recargá la página para ver a los nuevos alumnos
+                    </button>
+                `;
+
+                panel.innerHTML = reportHtml;
+            } else {
+                panel.innerHTML = `
+                    <div class="p-3 rounded-xl bg-rose-500/15 border border-rose-500/30 text-rose-500 font-bold space-y-1">
+                        <div class="flex items-center gap-1.5">
+                            <span class="material-symbols-outlined">error</span>
+                            <span>Error al procesar el archivo:</span>
+                        </div>
+                        <p class="text-xs font-normal">${data.mensaje || 'Formato de archivo inválido.'}</p>
+                    </div>
+                `;
+            }
+        })
+        .catch(err => {
+            btn.disabled = false;
+            btn.innerHTML = `<span class="material-symbols-outlined text-sm">upload</span><span>Procesar y Cargar</span>`;
+            panel.classList.remove('hidden');
+            panel.innerHTML = `<div class="text-rose-500 font-bold">Error de conexión: ${err}</div>`;
+        });
+    }
+
+    function descargarMatrizConCarga(url, nombreCarrera) {
+        const dd = document.getElementById('dropdownLibroMatriz');
+        if (dd) dd.classList.add('hidden');
+
+        const modalLoading = document.getElementById('modalLoadingMatriz');
+        const carreraNomEl = document.getElementById('carreraLoadingNom');
+        
+        if (carreraNomEl) carreraNomEl.innerText = nombreCarrera;
+        if (modalLoading) modalLoading.classList.remove('hidden');
+
+        // Redireccionar / disparar descarga del archivo
+        setTimeout(() => {
+            window.location.href = url;
+            // Ocultar pantalla de carga después de que el navegador inicia la descarga
+            setTimeout(() => {
+                if (modalLoading) modalLoading.classList.add('hidden');
+            }, 3000);
+        }, 400);
+    }
+
+    function irAPagina(pageNum) {
+        document.getElementById('pageInput').value = pageNum;
+        document.getElementById('buscadorForm').submit();
+    }
+
+    function resetPageAndSubmit() {
+        document.getElementById('pageInput').value = 1;
+        document.getElementById('buscadorForm').submit();
+    }
+
     function limpiarFiltros() {
         const form = document.getElementById('buscadorForm');
         form.querySelectorAll('input[type="text"]').forEach(i => i.value = '');
         form.querySelectorAll('select').forEach(s => s.selectedIndex = 0);
+        document.getElementById('pageInput').value = 1;
         form.submit();
     }
 
@@ -262,83 +671,133 @@
         fetch(`/api/alumno/${dni}/`)
             .then(res => res.json())
             .then(data => {
-                modalNombre.innerText = data.personal.nombre_completo;
-                modalDniLegajo.innerText = `DNI: ${data.personal.dni} | Legajo: ${data.personal.legajo} | Mail: ${data.personal.mail}`;
+                const p = data.personal;
+                const r = data.resumen_academico;
 
-                let carrerasHtml = data.resumen_academico.carreras.map(c => 
-                    `<span class="px-3 py-1 rounded-lg bg-indigo-500/20 text-indigo-500 border border-indigo-500/30 text-xs font-bold">${c}</span>`
+                modalNombre.innerText = p.nombre_completo;
+                modalDniLegajo.innerHTML = `
+                    <span><strong>DNI:</strong> ${p.dni}</span>
+                    <span>•</span>
+                    <span><strong>CUIL:</strong> ${p.cuil || '-'}</span>
+                    <span>•</span>
+                    <span><strong>Legajo:</strong> ${p.legajo}</span>
+                `;
+
+                let carrerasHtml = r.carreras.map(c => 
+                    `<span class="px-3 py-1 rounded-lg bg-indigo-500/15 text-indigo-500 border border-indigo-500/30 text-xs font-bold break-words">${c}</span>`
                 ).join(' ');
 
                 let cursadasRows = data.cursadas.map(c => {
-                    let badgeClass = 'bg-slate-700 text-slate-300';
+                    let badgeClass = 'bg-slate-500/20 theme-text-main';
                     if (c.situacion === 'Promocionado') badgeClass = 'bg-emerald-500/20 text-emerald-500 border border-emerald-500/40 font-bold';
                     else if (c.situacion === 'Final') badgeClass = 'bg-amber-500/20 text-amber-500 border border-amber-500/40 font-bold';
                     else if (c.situacion === 'Libre') badgeClass = 'bg-rose-500/20 text-rose-500 border border-rose-500/40 font-bold';
 
-                    let notaFinalStr = c.nota_final !== null ? `<span class="font-extrabold text-indigo-500 text-base">${c.nota_final}</span>` : '<span class="text-slate-400 text-xs">Sin Cargar</span>';
+                    let notaFinalStr = c.nota_final !== null ? `<span class="font-extrabold text-indigo-500 text-base">${c.nota_final}</span>` : '<span class="theme-text-muted text-xs italic">Sin Cargar</span>';
 
                     return `
-                        <tr class="hover:bg-indigo-500/5">
-                            <td class="py-3.5 px-4">
-                                <div class="font-bold text-sm">${c.materia}</div>
-                                <div class="text-xs text-slate-400">${c.carrera} (${c.anio_carrera}° Año)</div>
+                        <tr class="theme-table-row">
+                            <td class="py-3 px-4 min-w-[200px]">
+                                <div class="font-bold text-xs md:text-sm theme-text-main break-words">${c.materia}</div>
+                                <div class="text-[11px] theme-text-muted break-words">${c.carrera} (${c.anio_carrera}° Año)</div>
                             </td>
-                            <td class="py-3.5 px-4 text-xs text-slate-400">${c.docentes}</td>
-                            <td class="py-3.5 px-4 text-center font-semibold text-xs">${c.asistencia}%</td>
-                            <td class="py-3.5 px-4 text-center">
+                            <td class="py-3 px-4 text-xs theme-text-muted break-words">${c.docentes}</td>
+                            <td class="py-3 px-4 text-center whitespace-nowrap">
                                 <span class="px-2.5 py-1 rounded-full text-xs ${badgeClass}">${c.situacion}</span>
                             </td>
-                            <td class="py-3.5 px-4 text-center font-mono">${notaFinalStr}</td>
+                            <td class="py-3 px-4 text-center font-mono whitespace-nowrap">${notaFinalStr}</td>
                         </tr>
                     `;
                 }).join('');
 
                 modalContent.innerHTML = `
-                    <!-- Stat Highlights -->
+                    <!-- Datos Personales Grid Flexible y Sin Textos Cortados -->
+                    <div class="p-4 md:p-5 rounded-2xl space-y-3.5" style="background: var(--card-inner-bg); border: 1px solid var(--card-inner-border);">
+                        <div class="text-xs theme-text-muted font-bold uppercase tracking-wider border-b pb-2" style="border-color: var(--card-inner-border);">
+                            Filiación y Datos Personales del Estudiante
+                        </div>
+                        <div class="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 gap-3.5 text-xs">
+                            <div class="space-y-0.5">
+                                <span class="theme-text-muted block text-[11px] font-semibold">Fecha de Nacimiento:</span>
+                                <span class="font-bold theme-text-main text-xs">${p.fecha_nacimiento || '-'}</span>
+                            </div>
+                            <div class="space-y-0.5">
+                                <span class="theme-text-muted block text-[11px] font-semibold">Edad:</span>
+                                <span class="font-bold text-indigo-500 text-xs">${p.edad ? p.edad + ' años' : '-'}</span>
+                            </div>
+                            <div class="space-y-0.5">
+                                <span class="theme-text-muted block text-[11px] font-semibold">Identidad de Género:</span>
+                                <span class="font-bold theme-text-main text-xs">${p.genero_desc || '-'} (${p.genero_sigla || 'N'})</span>
+                            </div>
+                            <div class="space-y-0.5">
+                                <span class="theme-text-muted block text-[11px] font-semibold">Nacionalidad:</span>
+                                <span class="font-bold theme-text-main text-xs">${p.nacionalidad || '-'}</span>
+                            </div>
+                            <div class="space-y-0.5">
+                                <span class="theme-text-muted block text-[11px] font-semibold">Localidad:</span>
+                                <span class="font-bold theme-text-main text-xs break-words">${p.localidad || '-'}</span>
+                            </div>
+                            <div class="space-y-0.5">
+                                <span class="theme-text-muted block text-[11px] font-semibold">Teléfono / Celular:</span>
+                                <span class="font-bold theme-text-main text-xs font-mono">${p.telefono || '-'}</span>
+                            </div>
+                            <div class="space-y-0.5 sm:col-span-2 md:col-span-2">
+                                <span class="theme-text-muted block text-[11px] font-semibold">Domicilio:</span>
+                                <span class="font-bold theme-text-main text-xs break-words leading-tight">${p.domicilio || '-'}</span>
+                            </div>
+                            <div class="space-y-0.5 sm:col-span-2 md:col-span-1">
+                                <span class="theme-text-muted block text-[11px] font-semibold">Correo Electrónico:</span>
+                                <span class="font-bold theme-text-main text-xs break-all leading-tight">${p.mail || '-'}</span>
+                            </div>
+                        </div>
+                    </div>
+
+                    <!-- Stat Highlights Adaptativos -->
                     <div class="grid grid-cols-2 md:grid-cols-4 gap-3">
-                        <div class="glass-card p-4 rounded-xl text-center">
-                            <div class="text-[11px] text-slate-400 font-bold uppercase tracking-wider">Promedio Notas</div>
-                            <div class="text-2xl font-black text-indigo-500 mt-1">${data.resumen_academico.promedio_notas}</div>
+                        <div class="p-3.5 rounded-xl text-center" style="background: var(--stat-card-bg); border: 1px solid var(--stat-card-border);">
+                            <div class="text-[10px] theme-text-muted font-bold uppercase tracking-wider">Promedio Notas</div>
+                            <div class="text-xl font-black text-indigo-500 mt-0.5">${r.promedio_notas}</div>
                         </div>
-                        <div class="glass-card p-4 rounded-xl text-center">
-                            <div class="text-[11px] text-slate-400 font-bold uppercase tracking-wider">Asistencia Media</div>
-                            <div class="text-2xl font-black text-emerald-500 mt-1">${data.resumen_academico.asistencia_promedio}%</div>
+                        <div class="p-3.5 rounded-xl text-center" style="background: var(--stat-card-bg); border: 1px solid var(--stat-card-border);">
+                            <div class="text-[10px] theme-text-muted font-bold uppercase tracking-wider">Promocionadas</div>
+                            <div class="text-xl font-black text-emerald-500 mt-0.5">${r.aprobadas_promocionadas}</div>
                         </div>
-                        <div class="glass-card p-4 rounded-xl text-center">
-                            <div class="text-[11px] text-slate-400 font-bold uppercase tracking-wider">Promocionadas</div>
-                            <div class="text-2xl font-black text-emerald-500 mt-1">${data.resumen_academico.aprobadas_promocionadas}</div>
+                        <div class="p-3.5 rounded-xl text-center" style="background: var(--stat-card-bg); border: 1px solid var(--stat-card-border);">
+                            <div class="text-[10px] theme-text-muted font-bold uppercase tracking-wider">Regulares / Cursando</div>
+                            <div class="text-xl font-black text-amber-500 mt-0.5">${r.regulares}</div>
                         </div>
-                        <div class="glass-card p-4 rounded-xl text-center">
-                            <div class="text-[11px] text-slate-400 font-bold uppercase tracking-wider">Total Cursadas</div>
-                            <div class="text-2xl font-black text-indigo-500 mt-1">${data.resumen_academico.total_materias_cursadas}</div>
+                        <div class="p-3.5 rounded-xl text-center" style="background: var(--stat-card-bg); border: 1px solid var(--stat-card-border);">
+                            <div class="text-[10px] theme-text-muted font-bold uppercase tracking-wider">Total Materias</div>
+                            <div class="text-xl font-black text-indigo-500 mt-0.5">${r.total_materias_cursadas}</div>
                         </div>
                     </div>
 
                     <!-- Carrera badges -->
                     <div class="flex items-center gap-2 flex-wrap">
-                        <span class="text-xs text-slate-400 font-bold uppercase tracking-wider">Carrera(s):</span>
-                        ${carrerasHtml}
+                        <span class="text-xs theme-text-muted font-bold uppercase tracking-wider">Inscripción / Carrera:</span>
+                        <div class="flex flex-wrap gap-2">
+                            ${carrerasHtml || '<span class="text-xs theme-text-muted">Sin carrera registrada</span>'}
+                        </div>
                     </div>
 
                     <!-- Detailed Table of Cursadas -->
-                    <div class="glass-card rounded-xl overflow-hidden border border-white/10">
-                        <div class="px-4 py-3 bg-slate-900/30 border-b border-white/10 font-bold text-sm flex items-center justify-between">
-                            <span>Detalle por Espacio Curricular / Materia</span>
-                            <span class="text-xs text-slate-400 font-normal">Trayectoria Estudiantil</span>
+                    <div class="rounded-xl overflow-hidden" style="background: var(--stat-card-bg); border: 1px solid var(--stat-card-border);">
+                        <div class="px-4 py-2.5 border-b theme-border font-bold text-xs flex items-center justify-between theme-text-main" style="background: var(--header-bg);">
+                            <span>Historial Académico por Espacio Curricular</span>
+                            <span class="text-[11px] theme-text-muted font-normal">Trayectoria Estudiantil</span>
                         </div>
                         <div class="overflow-x-auto">
-                            <table class="w-full text-left text-sm">
-                                <thead class="bg-slate-950/40 text-slate-400 uppercase text-[11px] tracking-wider font-semibold border-b border-white/10">
+                            <table class="w-full text-left text-xs">
+                                <thead class="theme-table-header uppercase text-[10px] tracking-wider font-semibold border-b theme-border">
                                     <tr>
-                                        <th class="py-3 px-4">Materia / Carrera</th>
-                                        <th class="py-3 px-4">Docente a Cargo</th>
-                                        <th class="py-3 px-4 text-center">Asistencia</th>
-                                        <th class="py-3 px-4 text-center">Condición</th>
-                                        <th class="py-3 px-4 text-center">Nota Final</th>
+                                        <th class="py-2.5 px-4 min-w-[200px]">Materia / Carrera</th>
+                                        <th class="py-2.5 px-4 min-w-[140px]">Docente a Cargo</th>
+                                        <th class="py-2.5 px-4 text-center min-w-[90px]">Condición</th>
+                                        <th class="py-2.5 px-4 text-center min-w-[90px]">Nota Final</th>
                                     </tr>
                                 </thead>
-                                <tbody class="divide-y divide-white/5 font-medium">
-                                    ${cursadasRows || '<tr><td colspan="5" class="py-6 text-center text-slate-400">Sin cursadas registradas.</td></tr>'}
+                                <tbody class="theme-table-divide font-medium">
+                                    ${cursadasRows || '<tr><td colspan="4" class="py-6 text-center theme-text-muted">Sin cursadas registradas.</td></tr>'}
                                 </tbody>
                             </table>
                         </div>
@@ -346,7 +805,7 @@
                 `;
             })
             .catch(err => {
-                modalContent.innerHTML = `<div class="text-rose-400 text-center py-8">Error al cargar datos del alumno: ${err}</div>`;
+                modalContent.innerHTML = `<div class="text-rose-500 text-center py-8">Error al cargar datos del estudiante: ${err}</div>`;
             });
     }
 

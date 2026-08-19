@@ -1,13 +1,48 @@
+{% load static %}
 <!DOCTYPE html>
 <html class="dark" lang="es" id="htmlTag">
 <head>
     <meta charset="utf-8"/>
     <meta content="width=device-width, initial-scale=1.0" name="viewport"/>
     <title>{% block title %}ISFT 188 - Buscador de Alumnos DNI{% endblock %}</title>
+
+    <!-- Script de Inicialización Inmediata Anti-FOUC (Previene parpadeo de modo oscuro a claro) -->
+    <script>
+        (function() {
+            try {
+                var savedTheme = localStorage.getItem('isft188_theme') || 'dark';
+                if (savedTheme === 'light') {
+                    document.documentElement.classList.remove('dark');
+                    document.documentElement.classList.add('light');
+                } else {
+                    document.documentElement.classList.remove('light');
+                    document.documentElement.classList.add('dark');
+                }
+            } catch (e) {}
+        })();
+    </script>
+    
+    <!-- Favicon Oficial ISFT 188 (Modo Oscuro) -->
+    <link rel="icon" type="image/png" href="{% static 'favicon.png' %}"/>
+
     <!-- Tailwind CSS CDN -->
     <script src="https://cdn.tailwindcss.com?plugins=forms,container-queries"></script>
+    <script>
+        tailwind.config = {
+            darkMode: 'class',
+            theme: {
+                extend: {
+                    colors: {
+                        brand: '#4f46e5'
+                    }
+                }
+            }
+        }
+    </script>
+    
     <!-- Google Fonts & Material Symbols -->
     <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700;800;900&family=Material+Symbols+Outlined:opsz,wght,FILL,GRAD@24,400,0..1,0&display=swap" rel="stylesheet"/>
+    
     <style>
         .material-symbols-outlined {
             font-variation-settings: 'FILL' 0, 'wght' 400, 'GRAD' 0, 'opsz' 24;
@@ -19,31 +54,59 @@
             --bg-body: #0f172a;
             --text-main: #f8fafc;
             --text-muted: #94a3b8;
-            --glass-bg: rgba(30, 41, 59, 0.8);
-            --glass-border: rgba(255, 255, 255, 0.15);
-            --input-bg: rgba(30, 41, 59, 0.9);
-            --input-border: rgba(255, 255, 255, 0.2);
+            --glass-bg: rgba(30, 41, 59, 0.85);
+            --glass-border: rgba(255, 255, 255, 0.12);
+            --card-inner-bg: rgba(15, 23, 42, 0.6);
+            --card-inner-border: rgba(255, 255, 255, 0.1);
+            --input-bg: rgba(15, 23, 42, 0.8);
+            --input-border: rgba(255, 255, 255, 0.18);
             --input-text: #f8fafc;
             --option-bg: #1e293b;
             --option-text: #f8fafc;
-            --header-bg: rgba(15, 23, 42, 0.9);
-            --modal-bg: rgba(15, 23, 42, 0.95);
+            --header-bg: rgba(15, 23, 42, 0.95);
+            --header-border: rgba(255, 255, 255, 0.1);
+            --modal-bg: #0f172a;
+            --modal-card-bg: rgba(30, 41, 59, 0.7);
+            --modal-card-border: rgba(255, 255, 255, 0.12);
+            --dropdown-bg: #0f172a;
+            --dropdown-border: rgba(255, 255, 255, 0.15);
+            --dropdown-text: #e2e8f0;
+            --dropdown-hover: rgba(255, 255, 255, 0.08);
+            --table-header-bg: rgba(15, 23, 42, 0.6);
+            --table-row-hover: rgba(99, 102, 241, 0.08);
+            --table-border: rgba(255, 255, 255, 0.08);
+            --stat-card-bg: rgba(30, 41, 59, 0.7);
+            --stat-card-border: rgba(255, 255, 255, 0.1);
         }
 
         /* Variables de Tema Claro */
         html.light {
-            --bg-body: #f1f5f9;
+            --bg-body: #f8fafc;
             --text-main: #0f172a;
-            --text-muted: #475569;
-            --glass-bg: rgba(255, 255, 255, 0.95);
-            --glass-border: rgba(0, 0, 0, 0.12);
+            --text-muted: #64748b;
+            --glass-bg: #ffffff;
+            --glass-border: rgba(0, 0, 0, 0.08);
+            --card-inner-bg: #f1f5f9;
+            --card-inner-border: rgba(0, 0, 0, 0.06);
             --input-bg: #ffffff;
-            --input-border: rgba(0, 0, 0, 0.2);
+            --input-border: #cbd5e1;
             --input-text: #0f172a;
             --option-bg: #ffffff;
             --option-text: #0f172a;
-            --header-bg: rgba(255, 255, 255, 0.95);
-            --modal-bg: rgba(255, 255, 255, 0.98);
+            --header-bg: rgba(255, 255, 255, 0.98);
+            --header-border: rgba(0, 0, 0, 0.08);
+            --modal-bg: #ffffff;
+            --modal-card-bg: #f8fafc;
+            --modal-card-border: #e2e8f0;
+            --dropdown-bg: #ffffff;
+            --dropdown-border: #e2e8f0;
+            --dropdown-text: #334155;
+            --dropdown-hover: #f1f5f9;
+            --table-header-bg: #f8fafc;
+            --table-row-hover: rgba(99, 102, 241, 0.05);
+            --table-border: #e2e8f0;
+            --stat-card-bg: #f8fafc;
+            --stat-card-border: #e2e8f0;
         }
 
         body {
@@ -51,7 +114,7 @@
             color: var(--text-main);
             font-family: 'Inter', sans-serif;
             overflow-x: hidden;
-            transition: background-color 0.2s ease, color 0.2s ease;
+            transition: background-color 0.15s ease, color 0.15s ease;
         }
 
         .glass-card {
@@ -59,7 +122,23 @@
             backdrop-filter: blur(16px);
             -webkit-backdrop-filter: blur(16px);
             border: 1px solid var(--glass-border);
-            box-shadow: 0 10px 30px -5px rgba(0, 0, 0, 0.08);
+            box-shadow: 0 10px 30px -5px rgba(0, 0, 0, 0.06);
+            transition: background-color 0.15s ease, border-color 0.15s ease;
+        }
+
+        .glass-dropdown {
+            background: var(--dropdown-bg) !important;
+            border: 1px solid var(--dropdown-border) !important;
+            color: var(--dropdown-text) !important;
+            box-shadow: 0 25px 50px -12px rgba(0, 0, 0, 0.35);
+        }
+
+        .dropdown-item {
+            color: var(--dropdown-text) !important;
+            transition: all 0.15s ease;
+        }
+        .dropdown-item:hover {
+            background: var(--dropdown-hover) !important;
         }
 
         input[type="text"], input[type="search"], select {
@@ -86,20 +165,49 @@
             padding: 10px;
         }
 
-        input:-webkit-autofill,
-        input:-webkit-autofill:hover, 
-        input:-webkit-autofill:focus {
-            -webkit-text-fill-color: var(--input-text) !important;
-            -webkit-box-shadow: 0 0 0px 1000px var(--input-bg) inset !important;
-            transition: background-color 5000s ease-in-out 0s;
+        .glass-modal {
+            background: var(--modal-bg) !important;
+            border: 1px solid var(--glass-border) !important;
+            color: var(--text-main) !important;
+            box-shadow: 0 25px 50px -12px rgba(0, 0, 0, 0.5);
         }
 
-        .glass-modal {
-            background: var(--modal-bg);
-            backdrop-filter: blur(24px);
-            -webkit-backdrop-filter: blur(24px);
-            border: 1px solid var(--glass-border);
-            color: var(--text-main);
+        .theme-text-main {
+            color: var(--text-main) !important;
+        }
+
+        .theme-text-muted {
+            color: var(--text-muted) !important;
+        }
+
+        .theme-border {
+            border-color: var(--glass-border) !important;
+        }
+
+        .theme-table-header {
+            background-color: var(--table-header-bg) !important;
+            border-color: var(--table-border) !important;
+            color: var(--text-muted) !important;
+        }
+
+        .theme-table-row:hover {
+            background-color: var(--table-row-hover) !important;
+        }
+
+        .theme-table-divide > :not([hidden]) ~ :not([hidden]) {
+            border-color: var(--table-border) !important;
+        }
+
+        .logo-circular {
+            border-radius: 9999px;
+            object-fit: cover;
+            box-shadow: 0 6px 16px rgba(0, 0, 0, 0.2);
+            border: 2.5px solid rgba(99, 102, 241, 0.35);
+            transition: transform 0.25s ease, box-shadow 0.25s ease;
+        }
+        .logo-circular:hover {
+            transform: scale(1.06);
+            box-shadow: 0 8px 24px rgba(99, 102, 241, 0.35);
         }
 
         ::-webkit-scrollbar {
@@ -107,7 +215,7 @@
             height: 8px;
         }
         ::-webkit-scrollbar-track {
-            background: rgba(15, 23, 42, 0.1);
+            background: rgba(15, 23, 42, 0.05);
         }
         ::-webkit-scrollbar-thumb {
             background: rgba(99, 102, 241, 0.4);
@@ -120,24 +228,26 @@
     {% block extra_head %}{% endblock %}
 </head>
 <body class="min-h-screen flex flex-col antialiased">
-    <!-- Navbar / Header -->
-    <header class="sticky top-0 z-30 border-b border-white/10 px-4 md:px-8 py-3 flex items-center justify-between" style="background: var(--header-bg); backdrop-filter: blur(16px);">
-        <div class="flex items-center gap-3">
-            <div class="w-10 h-10 rounded-xl bg-gradient-to-tr from-indigo-600 to-purple-500 flex items-center justify-center text-white shadow-lg shadow-indigo-500/20">
-                <span class="material-symbols-outlined text-2xl">school</span>
+    <!-- Navbar / Header (No sticky: se queda arriba y no sigue al bajar la página) -->
+    <header class="w-full border-b px-4 md:px-8 py-4 flex items-center justify-between" style="background: var(--header-bg); border-color: var(--header-border);">
+        <div class="flex items-center gap-4">
+            <!-- Logo Circular Oficial Notablemente Más Grande -->
+            <div class="w-16 h-16 md:w-20 md:h-20 rounded-full overflow-hidden flex items-center justify-center shrink-0">
+                <img id="logoDark" src="{% static 'img/logo_dark.png' %}" alt="Logo ISFT 188" class="w-full h-full logo-circular">
+                <img id="logoLight" src="{% static 'img/logo_light.png' %}" alt="Logo ISFT 188" class="w-full h-full logo-circular hidden">
             </div>
             <div>
-                <span class="text-xs uppercase tracking-widest text-indigo-500 font-bold">Instituto Superior N° 188</span>
-                <h1 class="text-lg font-black leading-tight">Sistema de Gestión Académica</h1>
+                <span class="text-xs md:text-sm uppercase tracking-wider text-indigo-500 font-bold block">Instituto Superior de Formación Técnica N° 188</span>
+                <h1 class="text-lg md:text-2xl font-black leading-tight theme-text-main">Sistema de Gestión Académica</h1>
             </div>
         </div>
 
         <div class="flex items-center gap-3">
-            <!-- Botón Conmutador de Modo Claro / Modo Oscuro -->
+            <!-- Botón Conmutador de Modo Claro / Modo Oscuro con Ancho Fijo (w-36 / min-w-[144px]) -->
             <button 
                 id="themeToggleBtn"
                 onclick="toggleTheme()" 
-                class="flex items-center gap-2 px-3.5 py-1.5 rounded-xl bg-indigo-500/10 hover:bg-indigo-500/20 border border-indigo-500/30 text-xs font-bold text-indigo-500 hover:text-indigo-400 transition-all cursor-pointer shadow-sm"
+                class="w-36 min-w-[144px] shrink-0 flex items-center justify-center gap-2 px-4 py-2 rounded-xl bg-indigo-500/10 hover:bg-indigo-500/20 border border-indigo-500/30 text-xs font-bold text-indigo-500 hover:text-indigo-400 transition-all cursor-pointer shadow-sm"
                 title="Cambiar Modo Claro / Oscuro"
             >
                 <span class="material-symbols-outlined text-base" id="themeIcon">dark_mode</span>
@@ -152,8 +262,8 @@
     </main>
 
     <!-- Footer -->
-    <footer class="border-t border-white/10 py-4 px-8 text-center text-xs text-slate-400 bg-slate-900/30">
-        ISFT N° 188 — General Rodríguez • Prácticas Profesionalizantes III (2026)
+    <footer class="border-t py-4 px-8 text-center text-xs theme-text-muted" style="border-color: var(--header-border); background: var(--card-inner-bg);">
+        ISFT N° 188 — General Rodríguez
     </footer>
 
     <script>
@@ -161,23 +271,31 @@
             const htmlTag = document.getElementById('htmlTag');
             const themeIcon = document.getElementById('themeIcon');
             const themeText = document.getElementById('themeText');
+            const logoDark = document.getElementById('logoDark');
+            const logoLight = document.getElementById('logoLight');
 
             if (theme === 'light') {
                 htmlTag.classList.remove('dark');
                 htmlTag.classList.add('light');
-                themeIcon.innerText = 'light_mode';
-                themeText.innerText = 'Modo Claro';
+                if (themeIcon) themeIcon.innerText = 'light_mode';
+                if (themeText) themeText.innerText = 'Modo Claro';
+                if (logoDark) logoDark.classList.add('hidden');
+                if (logoLight) logoLight.classList.remove('hidden');
             } else {
                 htmlTag.classList.remove('light');
                 htmlTag.classList.add('dark');
-                themeIcon.innerText = 'dark_mode';
-                themeText.innerText = 'Modo Oscuro';
+                if (themeIcon) themeIcon.innerText = 'dark_mode';
+                if (themeText) themeText.innerText = 'Modo Oscuro';
+                if (logoDark) logoDark.classList.remove('hidden');
+                if (logoLight) logoLight.classList.add('hidden');
             }
-            localStorage.setItem('isft188_theme', theme);
+            try {
+                localStorage.setItem('isft188_theme', theme);
+            } catch (e) {}
         }
 
         function toggleTheme() {
-            const currentTheme = localStorage.getItem('isft188_theme') || 'dark';
+            const currentTheme = (document.documentElement.classList.contains('light')) ? 'light' : 'dark';
             const newTheme = currentTheme === 'dark' ? 'light' : 'dark';
             applyTheme(newTheme);
         }
