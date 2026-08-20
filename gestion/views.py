@@ -111,7 +111,7 @@ def buscador_view(request):
         'cursadas__evaluaciones'
     ).all()
 
-    # Búsqueda flexible por DNI (limpio/con puntos), CUIL, Nombre, Apellido, Legajo o Localidad
+    # Busqueda flexible por DNI (limpio/con puntos), CUIL, Nombre, Apellido, Legajo o Localidad
     if query:
         query_clean = query.replace('.', '').replace(' ', '').replace('-', '').replace(',', '')
         
@@ -137,7 +137,7 @@ def buscador_view(request):
     if carrera_id:
         alumnos = alumnos.filter(cursadas__comision__plan_estudio__carrera__codigo_carrera=carrera_id).distinct()
 
-    # Filtro por Año de Cursada
+    # Filtro por Ano de Cursada
     if anio_filtro and anio_filtro.isdigit():
         alumnos = alumnos.filter(cursadas__comision__plan_estudio__anio_carrera=int(anio_filtro)).distinct()
 
@@ -212,7 +212,7 @@ def buscador_view(request):
     else:
         alumnos_list.sort(key=lambda x: (x['persona'].apellido or '').lower())
 
-    # Paginación estandarizada
+    # Paginacion estandarizada
     paginator = Paginator(alumnos_list, page_size)
     page_obj = paginator.get_page(page_num)
 

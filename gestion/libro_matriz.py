@@ -40,7 +40,7 @@ def generar_libro_matriz_excel(carrera_obj):
         cursadas__comision__plan_estudio__carrera=carrera_obj
     ).select_related('persona').distinct().order_by('persona__apellido', 'persona__nombre')
 
-    # Planes y materias organizadas por año (1°, 2°, 3°)
+    # Planes y materias organizadas por ano (1°, 2°, 3°)
     planes_carrera = PlanEstudio.objects.filter(carrera=carrera_obj).select_related('materia').order_by('anio_carrera', 'id_plan')
     materias_por_anio = {1: [], 2: [], 3: []}
     for p in planes_carrera:
@@ -75,7 +75,7 @@ def generar_libro_matriz_excel(carrera_obj):
     row_curr = 5
     for idx, al in enumerate(alumnos_carrera, 1):
         p = al.persona
-        # Determinar si egresó (ej: si tiene todas las materias promocionadas o final)
+        # Determinar si egreso (ej: si tiene todas las materias promocionadas o final)
         curs_al = Cursada.objects.filter(alumno=al, comision__plan_estudio__carrera=carrera_obj)
         total_cursadas = curs_al.count()
         promos_or_finals = curs_al.filter(situacion_final__in=['Promocionado', 'Final']).count()
@@ -113,7 +113,7 @@ def generar_libro_matriz_excel(carrera_obj):
         ws_matriz.column_dimensions[col_letter].width = max(max_len + 4, 12)
 
     # -------------------------------------------------------------
-    # 2. HOJAS POR AÑO: 1° Año, 2° Año, 3° Año
+    # 2. HOJAS POR ANO: 1° Ano, 2° Ano, 3° Ano
     # -------------------------------------------------------------
     for anio in [1, 2, 3]:
         sheet_title = f"{anio}° Año"
@@ -145,11 +145,11 @@ def generar_libro_matriz_excel(carrera_obj):
             folio_num = al.legajo or f"{idx}"
             row_data = [f"{p.apellido}, {p.nombre}", p.dni, folio_num]
 
-            # Buscar notas de cada materia en este año
+            # Buscar notas de cada materia en este ano
             for plan_it in planes_anio:
                 curs = Cursada.objects.filter(alumno=al, comision__plan_estudio=plan_it).first()
                 if curs:
-                    # Obtener última evaluación o situación
+                    # Obtener ultima evaluacion o situacion
                     ev = curs.evaluaciones.filter(nota__isnull=False).order_by('-fecha').first()
                     if ev and ev.nota is not None:
                         row_data.append(float(ev.nota))

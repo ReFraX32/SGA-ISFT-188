@@ -17,7 +17,7 @@
             </div>
         </div>
 
-        <!-- Errores de Validación General -->
+        <!-- Errores de Validacion General -->
         {% if form.non_field_errors %}
             <div class="mb-5 rounded-2xl border border-rose-500/30 bg-rose-500/10 p-3.5 text-xs font-semibold text-rose-500 space-y-1">
                 {% for error in form.non_field_errors %}
@@ -61,7 +61,7 @@
                 {% endfor %}
             </div>
 
-            <!-- Campo Contraseña -->
+            <!-- Campo Contrasena -->
             <div>
                 <label for="{{ form.password.id_for_label }}" class="block text-[11px] font-bold uppercase tracking-wider theme-text-muted mb-1">
                     Contraseña
@@ -84,7 +84,7 @@
                 {% endfor %}
             </div>
 
-            <!-- Botón de Envío -->
+            <!-- Boton de Envio -->
             <button
                 type="submit"
                 class="w-full bg-gradient-to-r from-indigo-600 to-indigo-700 hover:from-indigo-500 hover:to-indigo-600 text-white font-bold py-3 px-5 rounded-xl shadow-lg shadow-indigo-600/30 transition-all flex items-center justify-center gap-2 text-sm cursor-pointer mt-2"

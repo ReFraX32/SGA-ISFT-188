@@ -6,7 +6,7 @@
     <meta content="width=device-width, initial-scale=1.0" name="viewport"/>
     <title>{% block title %}ISFT 188 - Buscador de Estudiantes{% endblock %}</title>
 
-    <!-- Inicialización de Tema -->
+    <!-- Inicializacion de Tema -->
     <script>
         (function() {
             try {
@@ -268,7 +268,7 @@
                 <span>{{ request.user.username }}</span>
             </div>
 
-            <!-- Botón Cerrar Sesión -->
+            <!-- Boton Cerrar Sesion -->
             <a 
                 href="{% url 'login:logout' %}" 
                 class="flex items-center gap-1.5 px-3.5 py-2 rounded-xl bg-rose-500/10 hover:bg-rose-500/20 border border-rose-500/30 text-xs font-bold text-rose-500 hover:text-rose-400 transition-all cursor-pointer shadow-sm"
@@ -286,7 +286,7 @@
         {% block content %}{% endblock %}
     </main>
 
-    <!-- Pie de Página -->
+    <!-- Pie de Pagina -->
     <footer class="border-t py-4 px-8 text-center text-xs theme-text-muted" style="border-color: var(--header-border); background: var(--card-inner-bg);">
         ISFT N° 188 — General Rodríguez
     </footer>

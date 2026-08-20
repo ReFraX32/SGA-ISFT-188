@@ -187,7 +187,7 @@ class Command(BaseCommand):
                     if not carrera_obj:
                         carrera_obj = Carrera.objects.filter(codigo_carrera="LOGISTICA-5312").first() or Carrera.objects.first()
 
-                    # Código único por materia y carrera
+                    # Codigo unico por materia y carrera
                     codigo_materia_full = f"{carrera_obj.codigo_carrera}_{cod_mat_raw}"
                     nom_materia_clean = self.fix_accents(nom_materia)
                     materia_obj, _ = Materia.objects.update_or_create(
@@ -393,7 +393,7 @@ class Command(BaseCommand):
                         if curs_created:
                             total_cursadas_creadas += 1
 
-        # 4. INGESTA DEL LIBRO MATRIZ DE ENERGÍA (Calificaciones, Cursadas Históricas y Egresados)
+        # 4. INGESTA DEL LIBRO MATRIZ DE ENERGIA (Calificaciones, Cursadas Historicas y Egresados)
         libro_matriz_path = os.path.join(excels_dir, 'LIBRO MATRIZ DE ENERGÍA.xlsx')
         if os.path.exists(libro_matriz_path):
             self.stdout.write("\nProcesando LIBRO MATRIZ DE ENERGÍA (Evaluaciones y Calificaciones)...")
@@ -448,7 +448,7 @@ class Command(BaseCommand):
                     except (ValueError, TypeError):
                         continue
 
-                    # Obtener o crear Persona y Alumno si es histórico
+                    # Obtener o crear Persona y Alumno si es historico
                     persona_lm = Persona.objects.filter(dni=dni_cl).first()
                     if not persona_lm:
                         nom_cleaned = self.clean_title_case(nom_completo)
@@ -474,7 +474,7 @@ class Command(BaseCommand):
                             mail=None
                         )
                     else:
-                        # Estandarizar nombre si ya existía
+                        # Estandarizar nombre si ya existia
                         persona_lm.nombre = self.clean_title_case(persona_lm.nombre)
                         persona_lm.apellido = self.clean_title_case(persona_lm.apellido)
                         if persona_lm.mail and persona_lm.mail.endswith('@isft188.edu.ar'):
@@ -530,7 +530,7 @@ class Command(BaseCommand):
                                 )
                                 total_evals_cargadas += 1
 
-        # 5. GENERACIÓN AUTOMÁTICA DE FIXTURE CANÓNICA (initial_data.json)
+        # 5. GENERACION AUTOMATICA DE FIXTURE CANONICA (initial_data.json)
         fixtures_dir = os.path.join(base_dir, 'gestion', 'fixtures')
         os.makedirs(fixtures_dir, exist_ok=True)
         fixture_path = os.path.join(fixtures_dir, 'initial_data.json')

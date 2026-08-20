@@ -192,7 +192,7 @@ class BuscadorAlumnosTestCase(TestCase):
         self.assertEqual(json1['personal']['genero_sigla'], 'M')
         self.assertEqual(json1['personal']['genero_desc'], 'Masculino')
 
-        # Alumno sin correo especificado (debe ser vacío, no inventado)
+        # Alumno sin correo especificado (debe ser vacio, no inventado)
         response2 = self.client.get(reverse('gestion:alumno_detalle_json', kwargs={'dni': '39110038'}))
         self.assertEqual(response2.status_code, 200)
         json2 = response2.json()

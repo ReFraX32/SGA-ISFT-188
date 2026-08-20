@@ -1,12 +1,12 @@
 #!/bin/sh
 set -e
 
-# Puerto expuesto (Render/Railway inyectan la variable PORT dinámicamente)
+# Puerto expuesto (Render/Railway inyectan la variable PORT dinamicamente)
 PORT="${PORT:-8000}"
 
 echo "Iniciando servicio para ISFT 188 en el puerto ${PORT}..."
 
-# Intentar conectar a PostgreSQL con tiempo límite máximo (15 segundos)
+# Intentar conectar a PostgreSQL con tiempo limite maximo (15 segundos)
 if [ "$DB_ENGINE" = "postgresql" ] || [ -n "$DATABASE_URL" ] || [ -n "$DB_HOST" ]; then
     echo "Verificando conexión a la base de datos PostgreSQL..."
     MAX_RETRIES=15

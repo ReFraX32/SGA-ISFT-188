@@ -1,4 +1,3 @@
-# Dockerfile para Sistema de Gestión de Alumnos ISFT 188
 FROM python:3.12-slim
 
 # Evitar escritura de bytecode y habilitar buffer en stdout
@@ -18,13 +17,13 @@ RUN apt-get update && apt-get install -y --no-install-recommends \
 COPY requirements.txt /app/
 RUN pip install --upgrade pip && pip install --no-cache-dir -r requirements.txt
 
-# Copiar el código fuente
+# Copiar el codigo fuente
 COPY . /app/
 
-# Crear directorios para estáticos y medios con permisos
+# Crear directorios para estaticos y medios con permisos
 RUN mkdir -p /app/staticfiles /app/media
 
-# Permisos de ejecución al script de entrada
+# Permisos de ejecucion al script de entrada
 RUN chmod +x /app/entrypoint.sh
 
 EXPOSE 8000

@@ -1,6 +1,6 @@
 {% extends 'gestion/base.html' %}
 
-{% block title %}Buscador de Estudiantes — ISFT N° 188{% endblock %}
+{% block title %}Buscador de Estudiantes - ISFT N 188{% endblock %}
 
 {% block content %}
 <div class="space-y-6">
@@ -17,7 +17,7 @@
                 </p>
             </div>
 
-            <!-- Botones de Acción Global -->
+            <!-- Botones de Accion Global -->
             <div class="flex items-center gap-3 flex-wrap">
                 
                 <!-- Carga Masiva desde Excel -->
@@ -30,7 +30,7 @@
                     <span>Cargar Estudiantes (.xlsx)</span>
                 </button>
 
-                <!-- Menú Desplegable Libro Matriz -->
+                <!-- Menu Desplegable Libro Matriz -->
                 <div class="relative inline-block text-left z-50" id="dropdownLibroMatrizContainer">
                     <button 
                         type="button" 
@@ -53,7 +53,9 @@
                         {% for c in carreras %}
                         <button 
                             type="button" 
-                            onclick="descargarMatrizConCarga('{% url 'gestion:descargar_libro_matriz_carrera' c.codigo_carrera %}', '{{ c.nombre_carrera }} ({{ c.resolucion_vigente }})')"
+                            data-url="{% url 'gestion:descargar_libro_matriz_carrera' c.codigo_carrera %}"
+                            data-carrera="{{ c.nombre_carrera }} ({{ c.resolucion_vigente }})"
+                            onclick="descargarMatrizConCarga(this.dataset.url, this.dataset.carrera)"
                             class="w-full flex items-center justify-between px-3 py-2.5 text-xs rounded-xl dropdown-item font-medium transition-colors cursor-pointer text-left gap-2"
                         >
                             <span class="truncate">
@@ -69,13 +71,13 @@
         </div>
     </div>
 
-    <!-- Filtros de Búsqueda -->
+    <!-- Filtros de Busqueda -->
     <div class="glass-card p-6 rounded-2xl shadow-xl relative z-10">
         <form method="POST" action="{% url 'gestion:buscador' %}" id="buscadorForm" class="space-y-4">
             {% csrf_token %}
             <input type="hidden" name="page" id="pageInput" value="{{ page_obj.number }}">
             
-            <!-- Barra de Búsqueda Principal -->
+            <!-- Barra de Busqueda Principal -->
             <div class="relative">
                 <span class="absolute inset-y-0 left-0 flex items-center pl-4 pointer-events-none theme-text-muted">
                     <span class="material-symbols-outlined">search</span>
@@ -111,7 +113,7 @@
                     </select>
                 </div>
 
-                <!-- Filtro Año -->
+                <!-- Filtro Ano -->
                 <div>
                     <label class="block text-[11px] font-bold uppercase tracking-wider theme-text-muted mb-1">Año de Cursada</label>
                     <select name="anio" onchange="resetPageAndSubmit()" class="w-full rounded-xl px-3 py-2 text-xs font-semibold cursor-pointer">
@@ -150,7 +152,7 @@
                 </div>
             </div>
 
-            <!-- Controles de Paginación y Limpieza -->
+            <!-- Controles de Paginacion y Limpieza -->
             <div class="flex flex-wrap items-center justify-between gap-3 pt-3 border-t theme-border text-xs">
                 <div class="flex items-center gap-2.5 theme-text-main">
                     <span class="theme-text-muted font-medium">Mostrar por página:</span>
@@ -181,11 +183,11 @@
 
     <!-- Resultados -->
     <div class="glass-card rounded-2xl overflow-hidden shadow-2xl relative z-0">
-        <!-- Encabezado Colapsable con Transición Suave -->
+        <!-- Encabezado Colapsable con Transicion Suave -->
         <div 
             onclick="toggleResultados()" 
             class="px-6 py-4 border-b theme-border flex flex-wrap items-center justify-between gap-2 cursor-pointer hover:bg-slate-500/5 transition-colors select-none"
-            title="Hacé clic para contraer o expandir los resultados"
+            title="Hacer clic para contraer o expandir los resultados"
         >
             <div class="flex items-center gap-3">
                 <button 
@@ -209,7 +211,7 @@
             {% endif %}
         </div>
 
-        <!-- Contenedor con Animación Suave de Despliegue (CSS Grid Transition) -->
+        <!-- Contenedor con Animacion Suave de Despliegue -->
         <div id="contenedorResultados" class="grid transition-all duration-300 ease-in-out" style="grid-template-rows: 1fr; opacity: 1;">
             <div class="overflow-hidden">
                 {% if alumnos_list %}
@@ -257,7 +259,9 @@
                                 </td>
                                 <td class="py-3.5 px-4 text-center whitespace-nowrap">
                                     <button 
-                                        onclick="cargarEstadoAcademico('{{ item.persona.dni }}')"
+                                        type="button"
+                                        data-dni="{{ item.persona.dni }}"
+                                        onclick="cargarEstadoAcademico(this.dataset.dni)"
                                         class="inline-flex items-center gap-1 bg-indigo-600 hover:bg-indigo-500 text-white text-xs font-bold py-2 px-3.5 rounded-xl shadow-md shadow-indigo-600/20 transition-all hover:scale-105 cursor-pointer"
                                         title="Ver Expediente Académico"
                                     >
@@ -271,7 +275,7 @@
                     </table>
                 </div>
 
-                <!-- Paginación -->
+                <!-- Paginacion -->
                 {% if page_obj.has_other_pages %}
                 <div class="px-6 py-4 border-t theme-border flex flex-wrap items-center justify-between gap-3" style="background: var(--card-inner-bg);">
                     <div class="text-xs theme-text-muted">
@@ -280,10 +284,10 @@
 
                     <div class="flex items-center gap-1.5">
                         {% if page_obj.has_previous %}
-                        <button type="button" onclick="irAPagina(1)" class="p-2 rounded-lg bg-slate-500/10 hover:bg-slate-500/20 theme-text-main text-xs transition-colors cursor-pointer" title="Primera Página">
+                        <button type="button" data-page="1" onclick="irAPagina(this.dataset.page)" class="p-2 rounded-lg bg-slate-500/10 hover:bg-slate-500/20 theme-text-main text-xs transition-colors cursor-pointer" title="Primera Página">
                             <span class="material-symbols-outlined text-sm">first_page</span>
                         </button>
-                        <button type="button" onclick="irAPagina({{ page_obj.previous_page_number }})" class="px-3 py-1.5 rounded-lg bg-slate-500/10 hover:bg-slate-500/20 theme-text-main text-xs font-semibold transition-colors flex items-center gap-1 cursor-pointer">
+                        <button type="button" data-page="{{ page_obj.previous_page_number }}" onclick="irAPagina(this.dataset.page)" class="px-3 py-1.5 rounded-lg bg-slate-500/10 hover:bg-slate-500/20 theme-text-main text-xs font-semibold transition-colors flex items-center gap-1 cursor-pointer">
                             <span class="material-symbols-outlined text-sm">chevron_left</span>
                             <span>Anterior</span>
                         </button>
@@ -297,7 +301,7 @@
                                         {{ p }}
                                     </span>
                                     {% else %}
-                                    <button type="button" onclick="irAPagina({{ p }})" class="w-8 h-8 rounded-lg bg-slate-500/10 hover:bg-slate-500/20 theme-text-main text-xs font-medium transition-colors cursor-pointer">
+                                    <button type="button" data-page="{{ p }}" onclick="irAPagina(this.dataset.page)" class="w-8 h-8 rounded-lg bg-slate-500/10 hover:bg-slate-500/20 theme-text-main text-xs font-medium transition-colors cursor-pointer">
                                         {{ p }}
                                     </button>
                                     {% endif %}
@@ -306,11 +310,11 @@
                         </div>
 
                         {% if page_obj.has_next %}
-                        <button type="button" onclick="irAPagina({{ page_obj.next_page_number }})" class="px-3 py-1.5 rounded-lg bg-slate-500/10 hover:bg-slate-500/20 theme-text-main text-xs font-semibold transition-colors flex items-center gap-1 cursor-pointer">
+                        <button type="button" data-page="{{ page_obj.next_page_number }}" onclick="irAPagina(this.dataset.page)" class="px-3 py-1.5 rounded-lg bg-slate-500/10 hover:bg-slate-500/20 theme-text-main text-xs font-semibold transition-colors flex items-center gap-1 cursor-pointer">
                             <span>Siguiente</span>
                             <span class="material-symbols-outlined text-sm">chevron_right</span>
                         </button>
-                        <button type="button" onclick="irAPagina({{ page_obj.paginator.num_pages }})" class="p-2 rounded-lg bg-slate-500/10 hover:bg-slate-500/20 theme-text-main text-xs transition-colors cursor-pointer" title="Última Página">
+                        <button type="button" data-page="{{ page_obj.paginator.num_pages }}" onclick="irAPagina(this.dataset.page)" class="p-2 rounded-lg bg-slate-500/10 hover:bg-slate-500/20 theme-text-main text-xs transition-colors cursor-pointer" title="Última Página">
                             <span class="material-symbols-outlined text-sm">last_page</span>
                         </button>
                         {% endif %}
@@ -332,7 +336,7 @@
     </div>
 </div>
 
-<!-- Modal Estado Académico Detallado -->
+<!-- Modal Estado Academico Detallado -->
 <div id="modalEstado" class="fixed inset-0 z-[9999] hidden flex items-center justify-center p-3 md:p-6 bg-black/75 backdrop-blur-md">
     <div class="glass-modal w-full max-w-4xl rounded-3xl overflow-hidden max-h-[92vh] flex flex-col shadow-2xl border theme-border animate-in zoom-in-95 duration-200">
         
@@ -349,7 +353,7 @@
                     </div>
                 </div>
             </div>
-            <button onclick="cerrarModal()" class="theme-text-muted hover:text-indigo-500 p-2 rounded-lg hover:bg-indigo-500/10 transition-colors cursor-pointer shrink-0">
+            <button type="button" onclick="cerrarModal()" class="theme-text-muted hover:text-indigo-500 p-2 rounded-lg hover:bg-indigo-500/10 transition-colors cursor-pointer shrink-0">
                 <span class="material-symbols-outlined">close</span>
             </button>
         </div>
@@ -368,7 +372,7 @@
                 <span class="material-symbols-outlined text-sm">print</span>
                 <span>Imprimir Constancia</span>
             </a>
-            <button onclick="cerrarModal()" class="bg-indigo-600 hover:bg-indigo-500 text-white text-xs font-bold py-2 px-5 rounded-xl transition-all cursor-pointer">
+            <button type="button" onclick="cerrarModal()" class="bg-indigo-600 hover:bg-indigo-500 text-white text-xs font-bold py-2 px-5 rounded-xl transition-all cursor-pointer">
                 Cerrar
             </button>
         </div>
@@ -389,7 +393,7 @@
                     <p class="text-xs theme-text-muted">Importá o actualizá la nómina de estudiantes del instituto.</p>
                 </div>
             </div>
-            <button onclick="cerrarModalImportar()" class="theme-text-muted hover:text-indigo-500 p-2 rounded-lg hover:bg-indigo-500/10 transition-colors cursor-pointer">
+            <button type="button" onclick="cerrarModalImportar()" class="theme-text-muted hover:text-indigo-500 p-2 rounded-lg hover:bg-indigo-500/10 transition-colors cursor-pointer">
                 <span class="material-symbols-outlined">close</span>
             </button>
         </div>
@@ -413,7 +417,7 @@
             </a>
         </div>
 
-        <form id="formImportarExcel" onsubmit="enviarExcelEstudiantes(event)" class="space-y-4">
+        <form id="formImportarExcel" action="{% url 'gestion:importar_alumnos' %}" onsubmit="enviarExcelEstudiantes(event)" class="space-y-4">
             {% csrf_token %}
             
             <div class="space-y-2">
@@ -438,7 +442,7 @@
             </div>
 
             <div id="panelResultadoImportacion" class="hidden rounded-2xl p-4 space-y-3 text-xs border" style="background: var(--card-inner-bg); border-color: var(--card-inner-border);">
-                <!-- Contenido inyectado dinámicamente -->
+                <!-- Contenido inyectado dinamicamente -->
             </div>
 
             <div class="flex items-center justify-end gap-3 pt-2">
@@ -546,7 +550,7 @@
     function mostrarArchivoSeleccionado(input) {
         const label = document.getElementById('labelArchivoNombre');
         if (input.files && input.files[0]) {
-            label.innerText = `📄 ${input.files[0].name} (${(input.files[0].size / 1024).toFixed(1)} KB)`;
+            label.innerText = '📄 ' + input.files[0].name + ' (' + (input.files[0].size / 1024).toFixed(1) + ' KB)';
         } else {
             label.innerText = 'Hacé clic acá o arrastrá tu archivo Excel';
         }
@@ -561,15 +565,17 @@
 
         if (!input.files || !input.files[0]) {
             panel.classList.remove('hidden');
-            panel.innerHTML = `<div class="text-rose-500 font-bold">⚠️ Tenés que seleccionar un archivo Excel (.xlsx o .xls) antes de procesar.</div>`;
+            panel.innerHTML = '<div class="text-rose-500 font-bold">⚠️ Tenés que seleccionar un archivo Excel (.xlsx o .xls) antes de procesar.</div>';
             return;
         }
 
         const formData = new FormData(form);
         btn.disabled = true;
-        btn.innerHTML = `<div class="w-4 h-4 border-2 border-white border-t-transparent rounded-full animate-spin"></div><span>Procesando...</span>`;
+        btn.innerHTML = '<div class="w-4 h-4 border-2 border-white border-t-transparent rounded-full animate-spin"></div><span>Procesando...</span>';
 
-        fetch('{% url "gestion:importar_alumnos" %}', {
+        const actionUrl = form.getAttribute('action') || '/api/alumnos/importar/';
+
+        fetch(actionUrl, {
             method: 'POST',
             body: formData,
             headers: {
@@ -579,70 +585,57 @@
         .then(res => res.json())
         .then(data => {
             btn.disabled = false;
-            btn.innerHTML = `<span class="material-symbols-outlined text-sm">upload</span><span>Procesar y Cargar</span>`;
+            btn.innerHTML = '<span class="material-symbols-outlined text-sm">upload</span><span>Procesar y Cargar</span>';
             panel.classList.remove('hidden');
 
             if (data.success) {
-                let reportHtml = `
-                    <div class="p-3 rounded-xl bg-emerald-500/15 border border-emerald-500/30 text-emerald-500 font-bold space-y-1">
-                        <div class="flex items-center gap-1.5 text-sm">
-                            <span class="material-symbols-outlined text-base">check_circle</span>
-                            <span>¡Importación completada con éxito!</span>
-                        </div>
-                        <div class="text-xs font-normal theme-text-main">
-                            • Estudiantes Nuevos Creados: <strong>${data.creados}</strong><br>
-                            • Estudiantes Existentes Actualizados: <strong>${data.actualizados}</strong><br>
-                            • Filas Procesadas: <strong>${data.filas_procesadas}</strong>
-                        </div>
-                    </div>
-                `;
+                let reportHtml = '<div class="p-3 rounded-xl bg-emerald-500/15 border border-emerald-500/30 text-emerald-500 font-bold space-y-1">' +
+                    '<div class="flex items-center gap-1.5 text-sm">' +
+                    '<span class="material-symbols-outlined text-base">check_circle</span>' +
+                    '<span>¡Importación completada con éxito!</span>' +
+                    '</div>' +
+                    '<div class="text-xs font-normal theme-text-main">' +
+                    '• Estudiantes Nuevos Creados: <strong>' + data.creados + '</strong><br>' +
+                    '• Estudiantes Existentes Actualizados: <strong>' + data.actualizados + '</strong><br>' +
+                    '• Filas Procesadas: <strong>' + data.filas_procesadas + '</strong>' +
+                    '</div></div>';
 
                 if (data.advertencias && data.advertencias.length > 0) {
-                    reportHtml += `
-                        <div class="p-2.5 rounded-xl bg-amber-500/15 border border-amber-500/30 text-amber-500 text-[11px] space-y-1">
-                            <strong class="block font-bold">Observaciones / Advertencias (${data.advertencias.length}):</strong>
-                            <ul class="list-disc pl-4 space-y-0.5">
-                                ${data.advertencias.map(a => `<li>${a}</li>`).join('')}
-                            </ul>
-                        </div>
-                    `;
+                    reportHtml += '<div class="p-2.5 rounded-xl bg-amber-500/15 border border-amber-500/30 text-amber-500 text-[11px] space-y-1">' +
+                        '<strong class="block font-bold">Observaciones / Advertencias (' + data.advertencias.length + '):</strong>' +
+                        '<ul class="list-disc pl-4 space-y-0.5">' +
+                        data.advertencias.map(a => '<li>' + a + '</li>').join('') +
+                        '</ul></div>';
                 }
 
                 if (data.errores && data.errores.length > 0) {
-                    reportHtml += `
-                        <div class="p-2.5 rounded-xl bg-rose-500/15 border border-rose-500/30 text-rose-500 text-[11px] space-y-1">
-                            <strong class="block font-bold">Filas con Errores Omitidas (${data.errores.length}):</strong>
-                            <ul class="list-disc pl-4 space-y-0.5">
-                                ${data.errores.map(err => `<li>${err}</li>`).join('')}
-                            </ul>
-                        </div>
-                    `;
+                    reportHtml += '<div class="p-2.5 rounded-xl bg-rose-500/15 border border-rose-500/30 text-rose-500 text-[11px] space-y-1">' +
+                        '<strong class="block font-bold">Filas con Errores Omitidas (' + data.errores.length + '):</strong>' +
+                        '<ul class="list-disc pl-4 space-y-0.5">' +
+                        data.errores.map(err => '<li>' + err + '</li>').join('') +
+                        '</ul></div>';
                 }
 
-                reportHtml += `
-                    <button type="button" onclick="window.location.reload()" class="w-full bg-emerald-600 hover:bg-emerald-500 text-white font-bold py-2 rounded-xl text-xs transition-colors cursor-pointer mt-2">
-                        Recargá la página para ver a los nuevos estudiantes
-                    </button>
-                `;
+                reportHtml += '<button type="button" onclick="window.location.reload()" class="w-full bg-emerald-600 hover:bg-emerald-500 text-white font-bold py-2 rounded-xl text-xs transition-colors cursor-pointer mt-2">' +
+                    'Recargá la página para ver a los nuevos estudiantes' +
+                    '</button>';
 
                 panel.innerHTML = reportHtml;
             } else {
-                panel.innerHTML = `
-                    <div class="p-3 rounded-xl bg-rose-500/15 border border-rose-500/30 text-rose-500 font-bold space-y-1">
-                        <div class="flex items-center gap-1.5">
-                            <span class="material-symbols-outlined">error</span>
-                            <span>Error al procesar el archivo:</span>
-                        </div>
-                        <p class="text-xs font-normal">${data.mensaje || 'Formato de archivo inválido.'}</p>
-                    </div>
-                `;
+                panel.innerHTML = '<div class="p-3 rounded-xl bg-rose-500/15 border border-rose-500/30 text-rose-500 font-bold space-y-1">' +
+                    '<div class="flex items-center gap-1.5">' +
+                    '<span class="material-symbols-outlined">error</span>' +
+                    '<span>Error al procesar el archivo:</span>' +
+                    '</div>' +
+                    '<p class="text-xs font-normal">' + (data.mensaje || 'Formato de archivo inválido.') + '</p>' +
+                    '</div>';
             }
         })
         .catch(err => {
             btn.disabled = false;
-            btn.innerHTML = `<span class="material-symbols-outlined text-sm">upload</span><span>Procesar y Cargar</span>`;
+            btn.innerHTML = '<span class="material-symbols-outlined text-sm">upload</span><span>Procesar y Cargar</span>';
             panel.classList.remove('hidden');
-            panel.innerHTML = `<div class="text-rose-500 font-bold">Error de conexión: ${err}</div>`;
+            panel.innerHTML = '<div class="text-rose-500 font-bold">Error de conexión: ' + err + '</div>';
         });
     }
 
@@ -689,26 +682,24 @@
         const modalDniLegajo = document.getElementById('modalDniLegajo');
         const btnImprimir = document.getElementById('btnImprimirAnalitico');
 
-        btnImprimir.href = `/alumno/${dni}/imprimir/`;
+        btnImprimir.href = '/alumno/' + dni + '/imprimir/';
         modal.classList.remove('hidden');
 
-        fetch(`/api/alumno/${dni}/`)
+        fetch('/api/alumno/' + dni + '/')
             .then(res => res.json())
             .then(data => {
                 const p = data.personal;
                 const r = data.resumen_academico;
 
                 modalNombre.innerText = p.nombre_completo;
-                modalDniLegajo.innerHTML = `
-                    <span><strong>DNI:</strong> ${p.dni}</span>
-                    <span>•</span>
-                    <span><strong>CUIL:</strong> ${p.cuil || '-'}</span>
-                    <span>•</span>
-                    <span><strong>Legajo:</strong> ${p.legajo}</span>
-                `;
+                modalDniLegajo.innerHTML = '<span><strong>DNI:</strong> ' + p.dni + '</span>' +
+                    '<span>•</span>' +
+                    '<span><strong>CUIL:</strong> ' + (p.cuil || '-') + '</span>' +
+                    '<span>•</span>' +
+                    '<span><strong>Legajo:</strong> ' + p.legajo + '</span>';
 
                 let carrerasHtml = r.carreras.map(c => 
-                    `<span class="px-3 py-1.5 rounded-lg bg-indigo-500/15 text-indigo-500 border border-indigo-500/30 text-xs font-bold break-words">${c}</span>`
+                    '<span class="px-3 py-1.5 rounded-lg bg-indigo-500/15 text-indigo-500 border border-indigo-500/30 text-xs font-bold break-words">' + c + '</span>'
                 ).join(' ');
 
                 let cursadasRows = data.cursadas.map(c => {
@@ -717,115 +708,108 @@
                     else if (c.situacion === 'Final') badgeClass = 'bg-amber-500/20 text-amber-500 border border-amber-500/40 font-bold';
                     else if (c.situacion === 'Libre') badgeClass = 'bg-rose-500/20 text-rose-500 border border-rose-500/40 font-bold';
 
-                    let notaFinalStr = c.nota_final !== null ? `<span class="font-extrabold text-indigo-500 text-base">${c.nota_final}</span>` : '<span class="theme-text-muted text-xs italic">Sin Cargar</span>';
+                    let notaFinalStr = c.nota_final !== null ? '<span class="font-extrabold text-indigo-500 text-base">' + c.nota_final + '</span>' : '<span class="theme-text-muted text-xs italic">Sin Cargar</span>';
 
-                    return `
-                        <tr class="theme-table-row">
-                            <td class="py-3 px-4 min-w-[200px]">
-                                <div class="font-bold text-xs md:text-sm theme-text-main break-words">${c.materia}</div>
-                                <div class="text-[11px] theme-text-muted break-words">${c.carrera} (${c.anio_carrera}° Año)</div>
-                            </td>
-                            <td class="py-3 px-4 text-xs theme-text-muted break-words">${c.docentes}</td>
-                            <td class="py-3 px-4 text-center whitespace-nowrap">
-                                <span class="px-2.5 py-1 rounded-full text-xs ${badgeClass}">${c.situacion}</span>
-                            </td>
-                            <td class="py-3 px-4 text-center font-mono whitespace-nowrap">${notaFinalStr}</td>
-                        </tr>
-                    `;
+                    return '<tr class="theme-table-row">' +
+                        '<td class="py-3 px-4 min-w-[200px]">' +
+                        '<div class="font-bold text-xs md:text-sm theme-text-main break-words">' + c.materia + '</div>' +
+                        '<div class="text-[11px] theme-text-muted break-words">' + c.carrera + ' (' + c.anio_carrera + '° Año)</div>' +
+                        '</td>' +
+                        '<td class="py-3 px-4 text-xs theme-text-muted break-words">' + c.docentes + '</td>' +
+                        '<td class="py-3 px-4 text-center whitespace-nowrap">' +
+                        '<span class="px-2.5 py-1 rounded-full text-xs ' + badgeClass + '">' + c.situacion + '</span>' +
+                        '</td>' +
+                        '<td class="py-3 px-4 text-center font-mono whitespace-nowrap">' + notaFinalStr + '</td>' +
+                        '</tr>';
                 }).join('');
 
-                modalContent.innerHTML = `
-                    <div class="p-4 md:p-5 rounded-2xl space-y-3.5" style="background: var(--card-inner-bg); border: 1px solid var(--card-inner-border);">
-                        <div class="text-xs theme-text-muted font-bold uppercase tracking-wider border-b pb-2" style="border-color: var(--card-inner-border);">
-                            Filiación y Datos Personales del Estudiante
-                        </div>
-                        <div class="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 gap-3.5 text-xs">
-                            <div class="space-y-0.5">
-                                <span class="theme-text-muted block text-[11px] font-semibold">Fecha de Nacimiento:</span>
-                                <span class="font-bold theme-text-main text-xs">${p.fecha_nacimiento || '-'}</span>
-                            </div>
-                            <div class="space-y-0.5">
-                                <span class="theme-text-muted block text-[11px] font-semibold">Edad:</span>
-                                <span class="font-bold text-indigo-500 text-xs">${p.edad ? p.edad + ' años' : '-'}</span>
-                            </div>
-                            <div class="space-y-0.5">
-                                <span class="theme-text-muted block text-[11px] font-semibold">Identidad de Género:</span>
-                                <span class="font-bold theme-text-main text-xs">${p.genero_desc || '-'} (${p.genero_sigla || 'N'})</span>
-                            </div>
-                            <div class="space-y-0.5">
-                                <span class="theme-text-muted block text-[11px] font-semibold">Nacionalidad:</span>
-                                <span class="font-bold theme-text-main text-xs">${p.nacionalidad || '-'}</span>
-                            </div>
-                            <div class="space-y-0.5">
-                                <span class="theme-text-muted block text-[11px] font-semibold">Localidad:</span>
-                                <span class="font-bold theme-text-main text-xs break-words">${p.localidad || '-'}</span>
-                            </div>
-                            <div class="space-y-0.5">
-                                <span class="theme-text-muted block text-[11px] font-semibold">Teléfono / Celular:</span>
-                                <span class="font-bold theme-text-main text-xs font-mono">${p.telefono || '-'}</span>
-                            </div>
-                            <div class="space-y-0.5 sm:col-span-2 md:col-span-2">
-                                <span class="theme-text-muted block text-[11px] font-semibold">Domicilio:</span>
-                                <span class="font-bold theme-text-main text-xs break-words leading-tight">${p.domicilio || '-'}</span>
-                            </div>
-                            <div class="space-y-0.5 sm:col-span-2 md:col-span-1">
-                                <span class="theme-text-muted block text-[11px] font-semibold">Correo Electrónico:</span>
-                                <span class="font-bold theme-text-main text-xs break-all leading-tight">${p.mail || '-'}</span>
-                            </div>
-                        </div>
-                    </div>
-
-                    <div class="grid grid-cols-2 md:grid-cols-4 gap-3">
-                        <div class="p-3.5 rounded-xl text-center" style="background: var(--stat-card-bg); border: 1px solid var(--stat-card-border);">
-                            <div class="text-[10px] theme-text-muted font-bold uppercase tracking-wider">Promedio Notas</div>
-                            <div class="text-xl font-black text-indigo-500 mt-0.5">${r.promedio_notas}</div>
-                        </div>
-                        <div class="p-3.5 rounded-xl text-center" style="background: var(--stat-card-bg); border: 1px solid var(--stat-card-border);">
-                            <div class="text-[10px] theme-text-muted font-bold uppercase tracking-wider">Promocionadas</div>
-                            <div class="text-xl font-black text-emerald-500 mt-0.5">${r.aprobadas_promocionadas}</div>
-                        </div>
-                        <div class="p-3.5 rounded-xl text-center" style="background: var(--stat-card-bg); border: 1px solid var(--stat-card-border);">
-                            <div class="text-[10px] theme-text-muted font-bold uppercase tracking-wider">Regulares / Cursando</div>
-                            <div class="text-xl font-black text-amber-500 mt-0.5">${r.regulares}</div>
-                        </div>
-                        <div class="p-3.5 rounded-xl text-center" style="background: var(--stat-card-bg); border: 1px solid var(--stat-card-border);">
-                            <div class="text-[10px] theme-text-muted font-bold uppercase tracking-wider">Total Materias</div>
-                            <div class="text-xl font-black text-indigo-500 mt-0.5">${r.total_materias_cursadas}</div>
-                        </div>
-                    </div>
-
-                    <div class="flex items-center gap-2 flex-wrap">
-                        <span class="text-xs theme-text-muted font-bold uppercase tracking-wider">Inscripción / Carrera:</span>
-                        <div class="flex flex-wrap gap-2">
-                            ${carrerasHtml || '<span class="text-xs theme-text-muted">Sin carrera registrada</span>'}
-                        </div>
-                    </div>
-
-                    <div class="rounded-xl overflow-hidden" style="background: var(--stat-card-bg); border: 1px solid var(--stat-card-border);">
-                        <div class="px-4 py-2.5 border-b theme-border font-bold text-xs flex items-center justify-between theme-text-main" style="background: var(--header-bg);">
-                            <span>Historial Académico por Espacio Curricular</span>
-                            <span class="text-[11px] theme-text-muted font-normal">Trayectoria Estudiantil</span>
-                        </div>
-                        <div class="overflow-x-auto">
-                            <table class="w-full text-left text-xs">
-                                <thead class="theme-table-header uppercase text-[10px] tracking-wider font-semibold border-b theme-border">
-                                    <tr>
-                                        <th class="py-2.5 px-4 min-w-[200px]">Materia / Carrera</th>
-                                        <th class="py-2.5 px-4 min-w-[140px]">Docente a Cargo</th>
-                                        <th class="py-2.5 px-4 text-center min-w-[90px]">Condición</th>
-                                        <th class="py-2.5 px-4 text-center min-w-[90px]">Nota Final</th>
-                                    </tr>
-                                </thead>
-                                <tbody class="theme-table-divide font-medium">
-                                    ${cursadasRows || '<tr><td colspan="4" class="py-6 text-center theme-text-muted">Sin cursadas registradas.</td></tr>'}
-                                </tbody>
-                            </table>
-                        </div>
-                    </div>
-                `;
+                modalContent.innerHTML = '<div class="p-4 md:p-5 rounded-2xl space-y-3.5" style="background: var(--card-inner-bg); border: 1px solid var(--card-inner-border);">' +
+                    '<div class="text-xs theme-text-muted font-bold uppercase tracking-wider border-b pb-2" style="border-color: var(--card-inner-border);">' +
+                    'Filiación y Datos Personales del Estudiante' +
+                    '</div>' +
+                    '<div class="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 gap-3.5 text-xs">' +
+                    '<div class="space-y-0.5">' +
+                    '<span class="theme-text-muted block text-[11px] font-semibold">Fecha de Nacimiento:</span>' +
+                    '<span class="font-bold theme-text-main text-xs">' + (p.fecha_nacimiento || '-') + '</span>' +
+                    '</div>' +
+                    '<div class="space-y-0.5">' +
+                    '<span class="theme-text-muted block text-[11px] font-semibold">Edad:</span>' +
+                    '<span class="font-bold text-indigo-500 text-xs">' + (p.edad ? p.edad + ' años' : '-') + '</span>' +
+                    '</div>' +
+                    '<div class="space-y-0.5">' +
+                    '<span class="theme-text-muted block text-[11px] font-semibold">Identidad de Género:</span>' +
+                    '<span class="font-bold theme-text-main text-xs">' + (p.genero_desc || '-') + ' (' + (p.genero_sigla || 'N') + ')</span>' +
+                    '</div>' +
+                    '<div class="space-y-0.5">' +
+                    '<span class="theme-text-muted block text-[11px] font-semibold">Nacionalidad:</span>' +
+                    '<span class="font-bold theme-text-main text-xs">' + (p.nacionalidad || '-') + '</span>' +
+                    '</div>' +
+                    '<div class="space-y-0.5">' +
+                    '<span class="theme-text-muted block text-[11px] font-semibold">Localidad:</span>' +
+                    '<span class="font-bold theme-text-main text-xs break-words">' + (p.localidad || '-') + '</span>' +
+                    '</div>' +
+                    '<div class="space-y-0.5">' +
+                    '<span class="theme-text-muted block text-[11px] font-semibold">Teléfono / Celular:</span>' +
+                    '<span class="font-bold theme-text-main text-xs font-mono">' + (p.telefono || '-') + '</span>' +
+                    '</div>' +
+                    '<div class="space-y-0.5 sm:col-span-2 md:col-span-2">' +
+                    '<span class="theme-text-muted block text-[11px] font-semibold">Domicilio:</span>' +
+                    '<span class="font-bold theme-text-main text-xs break-words leading-tight">' + (p.domicilio || '-') + '</span>' +
+                    '</div>' +
+                    '<div class="space-y-0.5 sm:col-span-2 md:col-span-1">' +
+                    '<span class="theme-text-muted block text-[11px] font-semibold">Correo Electrónico:</span>' +
+                    '<span class="font-bold theme-text-main text-xs break-all leading-tight">' + (p.mail || '-') + '</span>' +
+                    '</div>' +
+                    '</div>' +
+                    '</div>' +
+                    '<div class="grid grid-cols-2 md:grid-cols-4 gap-3">' +
+                    '<div class="p-3.5 rounded-xl text-center" style="background: var(--stat-card-bg); border: 1px solid var(--stat-card-border);">' +
+                    '<div class="text-[10px] theme-text-muted font-bold uppercase tracking-wider">Promedio Notas</div>' +
+                    '<div class="text-xl font-black text-indigo-500 mt-0.5">' + r.promedio_notas + '</div>' +
+                    '</div>' +
+                    '<div class="p-3.5 rounded-xl text-center" style="background: var(--stat-card-bg); border: 1px solid var(--stat-card-border);">' +
+                    '<div class="text-[10px] theme-text-muted font-bold uppercase tracking-wider">Promocionadas</div>' +
+                    '<div class="text-xl font-black text-emerald-500 mt-0.5">' + r.aprobadas_promocionadas + '</div>' +
+                    '</div>' +
+                    '<div class="p-3.5 rounded-xl text-center" style="background: var(--stat-card-bg); border: 1px solid var(--stat-card-border);">' +
+                    '<div class="text-[10px] theme-text-muted font-bold uppercase tracking-wider">Regulares / Cursando</div>' +
+                    '<div class="text-xl font-black text-amber-500 mt-0.5">' + r.regulares + '</div>' +
+                    '</div>' +
+                    '<div class="p-3.5 rounded-xl text-center" style="background: var(--stat-card-bg); border: 1px solid var(--stat-card-border);">' +
+                    '<div class="text-[10px] theme-text-muted font-bold uppercase tracking-wider">Total Materias</div>' +
+                    '<div class="text-xl font-black text-indigo-500 mt-0.5">' + r.total_materias_cursadas + '</div>' +
+                    '</div>' +
+                    '</div>' +
+                    '<div class="flex items-center gap-2 flex-wrap">' +
+                    '<span class="text-xs theme-text-muted font-bold uppercase tracking-wider">Inscripción / Carrera:</span>' +
+                    '<div class="flex flex-wrap gap-2">' +
+                    (carrerasHtml || '<span class="text-xs theme-text-muted">Sin carrera registrada</span>') +
+                    '</div>' +
+                    '</div>' +
+                    '<div class="rounded-xl overflow-hidden" style="background: var(--stat-card-bg); border: 1px solid var(--stat-card-border);">' +
+                    '<div class="px-4 py-2.5 border-b theme-border font-bold text-xs flex items-center justify-between theme-text-main" style="background: var(--header-bg);">' +
+                    '<span>Historial Académico por Espacio Curricular</span>' +
+                    '<span class="text-[11px] theme-text-muted font-normal">Trayectoria Estudiantil</span>' +
+                    '</div>' +
+                    '<div class="overflow-x-auto">' +
+                    '<table class="w-full text-left text-xs">' +
+                    '<thead class="theme-table-header uppercase text-[10px] tracking-wider font-semibold border-b theme-border">' +
+                    '<tr>' +
+                    '<th class="py-2.5 px-4 min-w-[200px]">Materia / Carrera</th>' +
+                    '<th class="py-2.5 px-4 min-w-[140px]">Docente a Cargo</th>' +
+                    '<th class="py-2.5 px-4 text-center min-w-[90px]">Condición</th>' +
+                    '<th class="py-2.5 px-4 text-center min-w-[90px]">Nota Final</th>' +
+                    '</tr>' +
+                    '</thead>' +
+                    '<tbody class="theme-table-divide font-medium">' +
+                    (cursadasRows || '<tr><td colspan="4" class="py-6 text-center theme-text-muted">Sin cursadas registradas.</td></tr>') +
+                    '</tbody>' +
+                    '</table>' +
+                    '</div>' +
+                    '</div>';
             })
             .catch(err => {
-                modalContent.innerHTML = `<div class="text-rose-500 text-center py-8">Error al cargar datos del estudiante: ${err}</div>`;
+                modalContent.innerHTML = '<div class="text-rose-500 text-center py-8">Error al cargar datos del estudiante: ' + err + '</div>';
             });
     }
 

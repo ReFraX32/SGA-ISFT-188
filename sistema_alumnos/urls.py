@@ -17,6 +17,6 @@ urlpatterns = [
     path('', include('gestion.urls')),
 ]
 
-# Habilitar ruta de administración solo si ENABLE_ADMIN es activado explícitamente en variables de entorno
+# Habilitar ruta de administracion solo si ENABLE_ADMIN es activado explicitamente en variables de entorno
 if os.environ.get('ENABLE_ADMIN', 'False').lower() in ['true', '1']:
     urlpatterns.append(path('admin/', admin.site.urls))

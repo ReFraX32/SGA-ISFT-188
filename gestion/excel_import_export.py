@@ -117,7 +117,7 @@ def generar_plantilla_alumnos_excel():
         bottom=Side(style='thin', color='CBD5E1')
     )
 
-    # Título institucional
+    # Titulo institucional
     ws.merge_cells("A1:M1")
     t_cell = ws["A1"]
     t_cell.value = "INSTITUTO SUPERIOR DE FORMACIÓN TÉCNICA N° 188 — PLANTILLA OFICIAL DE CARGA DE ESTUDIANTES"
@@ -203,7 +203,7 @@ def generar_plantilla_alumnos_excel():
         ws_ref.cell(r_idx, 2, c.nombre_carrera).border = thin_border
         ws_ref.cell(r_idx, 3, c.resolucion_vigente or "S/R").border = thin_border
 
-    # Anchos de columna automáticos
+    # Anchos de columna automaticos
     for col in ws.columns:
         max_len = max(len(str(cell.value or '')) for cell in col)
         col_letter = get_column_letter(col[0].column)
@@ -298,7 +298,7 @@ def procesar_importacion_alumnos_excel(file_obj):
         apellido_raw = ws.cell(r, col_map["apellido"]).value
         nombre_raw = ws.cell(r, col_map["nombre"]).value
 
-        # Si toda la fila obligatoria está vacía, continuar
+        # Si toda la fila obligatoria esta vacia, continuar
         if not dni_raw and not apellido_raw and not nombre_raw:
             continue
 
@@ -371,7 +371,7 @@ def procesar_importacion_alumnos_excel(file_obj):
             defaults={'legajo': legajo_gen}
         )
 
-        # Asignar Cursada/Carrera si se especificó
+        # Asignar Cursada/Carrera si se especifico
         if carrera_raw:
             carrera_str = str(carrera_raw).strip().lower()
             carrera_match = None
