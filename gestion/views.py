@@ -137,7 +137,7 @@ def buscador_view(request):
     if carrera_id:
         alumnos = alumnos.filter(cursadas__comision__plan_estudio__carrera__codigo_carrera=carrera_id).distinct()
 
-    # Filtro por Ano de Cursada
+    # Filtro por Año de Cursada
     if anio_filtro and anio_filtro.isdigit():
         alumnos = alumnos.filter(cursadas__comision__plan_estudio__anio_carrera=int(anio_filtro)).distinct()
 
