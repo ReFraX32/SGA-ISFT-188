@@ -4,9 +4,9 @@
 <head>
     <meta charset="utf-8"/>
     <meta content="width=device-width, initial-scale=1.0" name="viewport"/>
-    <title>{% block title %}ISFT 188 - Buscador de Alumnos DNI{% endblock %}</title>
+    <title>{% block title %}ISFT 188 - Buscador de Estudiantes{% endblock %}</title>
 
-    <!-- Script de Inicialización Inmediata Anti-FOUC (Previene parpadeo de modo oscuro a claro) -->
+    <!-- Inicialización de Tema -->
     <script>
         (function() {
             try {
@@ -22,7 +22,7 @@
         })();
     </script>
     
-    <!-- Favicon Oficial ISFT 188 (Modo Oscuro) -->
+    <!-- Favicon Oficial ISFT 188 -->
     <link rel="icon" type="image/png" href="{% static 'favicon.png' %}"/>
 
     <!-- Tailwind CSS CDN -->
@@ -99,61 +99,64 @@
             --modal-card-bg: #f8fafc;
             --modal-card-border: #e2e8f0;
             --dropdown-bg: #ffffff;
-            --dropdown-border: #e2e8f0;
-            --dropdown-text: #334155;
-            --dropdown-hover: #f1f5f9;
+            --dropdown-border: rgba(0, 0, 0, 0.12);
+            --dropdown-text: #0f172a;
+            --dropdown-hover: rgba(99, 102, 241, 0.08);
             --table-header-bg: #f8fafc;
-            --table-row-hover: rgba(99, 102, 241, 0.05);
-            --table-border: #e2e8f0;
-            --stat-card-bg: #f8fafc;
+            --table-row-hover: rgba(99, 102, 241, 0.06);
+            --table-border: rgba(0, 0, 0, 0.06);
+            --stat-card-bg: #ffffff;
             --stat-card-border: #e2e8f0;
         }
 
         body {
-            background-color: var(--bg-body);
-            color: var(--text-main);
             font-family: 'Inter', sans-serif;
-            overflow-x: hidden;
-            transition: background-color 0.15s ease, color 0.15s ease;
+            background-color: var(--bg-body) !important;
+            color: var(--text-main) !important;
+            transition: background-color 0.25s ease, color 0.25s ease;
         }
 
         .glass-card {
-            background: var(--glass-bg);
+            background: var(--glass-bg) !important;
+            border: 1px solid var(--glass-border) !important;
+            color: var(--text-main) !important;
             backdrop-filter: blur(16px);
-            -webkit-backdrop-filter: blur(16px);
-            border: 1px solid var(--glass-border);
-            box-shadow: 0 10px 30px -5px rgba(0, 0, 0, 0.06);
-            transition: background-color 0.15s ease, border-color 0.15s ease;
         }
 
         .glass-dropdown {
             background: var(--dropdown-bg) !important;
             border: 1px solid var(--dropdown-border) !important;
             color: var(--dropdown-text) !important;
-            box-shadow: 0 25px 50px -12px rgba(0, 0, 0, 0.35);
+            box-shadow: 0 20px 30px -10px rgba(0, 0, 0, 0.4);
         }
 
         .dropdown-item {
             color: var(--dropdown-text) !important;
-            transition: all 0.15s ease;
         }
         .dropdown-item:hover {
             background: var(--dropdown-hover) !important;
         }
 
-        input[type="text"], input[type="search"], select {
+        input[type="text"], input[type="search"], input[type="password"], input[type="email"], select {
             color: var(--input-text) !important;
             background-color: var(--input-bg) !important;
             border: 1px solid var(--input-border) !important;
             transition: all 0.2s ease;
         }
 
-        input[type="text"]::placeholder {
+        input[type="text"]::placeholder,
+        input[type="search"]::placeholder,
+        input[type="password"]::placeholder,
+        input[type="email"]::placeholder {
             color: var(--text-muted) !important;
             opacity: 0.8;
         }
 
-        input[type="text"]:focus, select:focus {
+        input[type="text"]:focus,
+        input[type="search"]:focus,
+        input[type="password"]:focus,
+        input[type="email"]:focus,
+        select:focus {
             border-color: #6366f1 !important;
             box-shadow: 0 0 0 3px rgba(99, 102, 241, 0.25) !important;
             outline: none;
@@ -186,8 +189,12 @@
 
         .theme-table-header {
             background-color: var(--table-header-bg) !important;
-            border-color: var(--table-border) !important;
             color: var(--text-muted) !important;
+        }
+
+        .theme-table-row {
+            border-color: var(--table-border) !important;
+            transition: background-color 0.15s ease;
         }
 
         .theme-table-row:hover {
@@ -228,10 +235,10 @@
     {% block extra_head %}{% endblock %}
 </head>
 <body class="min-h-screen flex flex-col antialiased">
-    <!-- Navbar / Header (No sticky: se queda arriba y no sigue al bajar la página) -->
+    <!-- Navbar / Encabezado Principal -->
     <header class="w-full border-b px-4 md:px-8 py-4 flex items-center justify-between" style="background: var(--header-bg); border-color: var(--header-border);">
         <div class="flex items-center gap-4">
-            <!-- Logo Circular Oficial Notablemente Más Grande -->
+            <!-- Logo Circular Oficial -->
             <div class="w-16 h-16 md:w-20 md:h-20 rounded-full overflow-hidden flex items-center justify-center shrink-0">
                 <img id="logoDark" src="{% static 'img/logo_dark.png' %}" alt="Logo ISFT 188" class="w-full h-full logo-circular">
                 <img id="logoLight" src="{% static 'img/logo_light.png' %}" alt="Logo ISFT 188" class="w-full h-full logo-circular hidden">
@@ -243,7 +250,7 @@
         </div>
 
         <div class="flex items-center gap-3">
-            <!-- Botón Conmutador de Modo Claro / Modo Oscuro con Ancho Fijo (w-36 / min-w-[144px]) -->
+            <!-- Conmutador de Tema Claro / Oscuro -->
             <button 
                 id="themeToggleBtn"
                 onclick="toggleTheme()" 
@@ -253,15 +260,33 @@
                 <span class="material-symbols-outlined text-base" id="themeIcon">dark_mode</span>
                 <span id="themeText">Modo Oscuro</span>
             </button>
+
+            {% if request.user.is_authenticated %}
+            <!-- Distintivo de Usuario Autenticado -->
+            <div class="hidden md:flex items-center gap-2 px-3 py-1.5 rounded-xl bg-indigo-500/10 border border-indigo-500/20 text-xs font-semibold text-indigo-500">
+                <span class="material-symbols-outlined text-sm">account_circle</span>
+                <span>{{ request.user.username }}</span>
+            </div>
+
+            <!-- Botón Cerrar Sesión -->
+            <a 
+                href="{% url 'login:logout' %}" 
+                class="flex items-center gap-1.5 px-3.5 py-2 rounded-xl bg-rose-500/10 hover:bg-rose-500/20 border border-rose-500/30 text-xs font-bold text-rose-500 hover:text-rose-400 transition-all cursor-pointer shadow-sm"
+                title="Cerrar Sesión"
+            >
+                <span class="material-symbols-outlined text-base">logout</span>
+                <span class="hidden sm:inline">Cerrar Sesión</span>
+            </a>
+            {% endif %}
         </div>
     </header>
 
-    <!-- Main Body Container -->
+    <!-- Contenido Principal -->
     <main class="flex-1 p-4 md:p-6 max-w-[1440px] w-full mx-auto">
         {% block content %}{% endblock %}
     </main>
 
-    <!-- Footer -->
+    <!-- Pie de Página -->
     <footer class="border-t py-4 px-8 text-center text-xs theme-text-muted" style="border-color: var(--header-border); background: var(--card-inner-bg);">
         ISFT N° 188 — General Rodríguez
     </footer>

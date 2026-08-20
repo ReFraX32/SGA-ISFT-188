@@ -3,10 +3,79 @@ from django.shortcuts import render, get_object_or_404
 from django.http import JsonResponse, HttpResponse, Http404
 from django.db.models import Q, Avg, Count
 from django.views.decorators.csrf import csrf_protect
+from django.contrib.auth.decorators import login_required
 from django.core.paginator import Paginator
 from .models import Alumno, Persona, Cursada, Carrera, PlanEstudio, Evaluacion
 from .libro_matriz import generar_libro_matriz_excel
 
+def formatear_dni(dni):
+    if not dni:
+        return "-"
+    digits = "".join(c for c in str(dni) if c.isdigit())
+    if not digits:
+        return str(dni)
+    return f"{int(digits):,}".replace(",", ".")
+
+def formatear_cuil(cuil):
+    if not cuil or str(cuil).strip() in ['', 'None', '-', '--']:
+        return "-"
+    digits = "".join(c for c in str(cuil) if c.isdigit())
+    if len(digits) == 11:
+        return f"{digits[:2]}-{digits[2:10]}-{digits[10]}"
+    return str(cuil)
+
+def formatear_telefono(tel):
+    if not tel or str(tel).strip() in ['', 'None', '-', '--']:
+        return "-"
+    digits = "".join(c for c in str(tel) if c.isdigit())
+    if not digits:
+        return str(tel)
+    if digits.startswith('549'):
+        digits = digits[3:]
+    elif digits.startswith('54'):
+        digits = digits[2:]
+    if digits.startswith('0'):
+        digits = digits[1:]
+    
+    if len(digits) == 10:
+        if digits.startswith('11'):
+            return f"+54 9 11 {digits[2:6]}-{digits[6:]}"
+        else:
+            return f"+54 9 {digits[:3]} {digits[3:6]}-{digits[6:]}"
+    elif len(digits) == 8:
+        return f"+54 9 11 {digits[:4]}-{digits[4:]}"
+    return f"+54 9 {digits}"
+
+def formatear_carreras_con_resolucion(carreras_dict):
+    """
+    Formatea las carreras incluyendo su resolución y los años agrupados correctamente.
+    Ejemplo:
+    - 'Técnico Superior en Energía con Orientación Industrial (Res. 794/01) (1°, 2° y 3° Año)'
+    - 'Tecnicatura Superior en Higiene y Seguridad en el Trabajo (Res. 320/13) (1° Año)'
+    """
+    resultado = []
+    for (c_nom, c_res), anios_set in sorted(carreras_dict.items(), key=lambda x: x[0][0]):
+        anios_clean = []
+        for a in anios_set:
+            digits = "".join(c for c in str(a) if c.isdigit())
+            if digits:
+                anios_clean.append(int(digits))
+        anios_sorted = sorted(list(set(anios_clean)))
+        
+        if len(anios_sorted) == 1:
+            anios_str = f"{anios_sorted[0]}° Año"
+        elif len(anios_sorted) == 2:
+            anios_str = f"{anios_sorted[0]}° y {anios_sorted[1]}° Año"
+        elif len(anios_sorted) > 2:
+            anios_str = f"{', '.join(f'{a}°' for a in anios_sorted[:-1])} y {anios_sorted[-1]}° Año"
+        else:
+            anios_str = "Año s/d"
+
+        res_str = f" ({c_res})" if c_res and str(c_res).strip() not in ['', 'None', '-'] else ""
+        resultado.append(f"{c_nom}{res_str} ({anios_str})")
+    return resultado
+
+@login_required(login_url='login:login')
 @csrf_protect
 def buscador_view(request):
     if request.method == 'POST':
@@ -76,7 +145,7 @@ def buscador_view(request):
     if localidad_filtro:
         alumnos = alumnos.filter(persona__localidad__icontains=localidad_filtro)
 
-    carreras = Carrera.objects.all().order_by('nombre_carrera')
+    carreras = Carrera.objects.all().order_by('nombre_carrera', 'resolucion_vigente')
     localidades = Persona.objects.exclude(localidad__isnull=True).exclude(localidad__exact='').values_list('localidad', flat=True).distinct().order_by('localidad')
 
     alumnos_list = []
@@ -84,23 +153,17 @@ def buscador_view(request):
         cursadas = al.cursadas.all()
         carreras_dict = {}
         for c in cursadas:
-            if c.comision and c.comision.plan_estudio:
-                c_nom = c.comision.plan_estudio.carrera.nombre_carrera
+            if c.comision and c.comision.plan_estudio and c.comision.plan_estudio.carrera:
+                car = c.comision.plan_estudio.carrera
+                c_nom = car.nombre_carrera
+                c_res = car.resolucion_vigente
                 c_an = c.comision.plan_estudio.anio_carrera
-                if c_nom not in carreras_dict:
-                    carreras_dict[c_nom] = set()
-                carreras_dict[c_nom].add(c_an)
+                key = (c_nom, c_res)
+                if key not in carreras_dict:
+                    carreras_dict[key] = set()
+                carreras_dict[key].add(c_an)
 
-        carreras_formatted_list = []
-        for c_nom, anios_set in sorted(carreras_dict.items()):
-            anios_sorted = sorted(list(anios_set), key=lambda x: int(str(x).replace('°', '').replace('º', '')) if str(x).isdigit() or str(x).replace('°','').replace('º','').isdigit() else 0)
-            if len(anios_sorted) == 1:
-                anios_str = f"{anios_sorted[0]}° Año"
-            elif len(anios_sorted) == 2:
-                anios_str = f"{anios_sorted[0]}° y {anios_sorted[1]}° Año"
-            else:
-                anios_str = f"{', '.join(f'{a}°' for a in anios_sorted[:-1])} y {anios_sorted[-1]}° Año"
-            carreras_formatted_list.append(f"{c_nom} ({anios_str})")
+        carreras_formatted_list = formatear_carreras_con_resolucion(carreras_dict)
 
         promocionadas = sum(1 for c in cursadas if c.situacion_final == 'Promocionado')
         regulares = sum(1 for c in cursadas if c.situacion_final == 'Regular')
@@ -118,6 +181,9 @@ def buscador_view(request):
         alumnos_list.append({
             'alumno': al,
             'persona': al.persona,
+            'dni_formateado': formatear_dni(al.persona.dni),
+            'cuil_formateado': formatear_cuil(al.persona.cuil),
+            'telefono_formateado': formatear_telefono(al.persona.telefono),
             'edad': al.persona.edad,
             'carreras': ", ".join(carreras_formatted_list) if carreras_formatted_list else "Sin Inscripción Activa",
             'localidad': al.persona.localidad or 'Sin registrar',
@@ -159,17 +225,14 @@ def buscador_view(request):
         'page_size': page_size,
         'page_obj': page_obj,
         'alumnos_list': page_obj.object_list,
+        'total_resultados': len(alumnos_list),
         'carreras': carreras,
         'localidades': localidades,
-        'total_resultados': len(alumnos_list),
-        'total_alumnos_sistema': Alumno.objects.count(),
-        'total_carreras_sistema': Carrera.objects.count(),
-        'total_cursadas_sistema': Cursada.objects.count(),
-        'total_evaluaciones_sistema': Evaluacion.objects.count(),
     }
     return render(request, 'gestion/buscador.html', context)
 
 
+@login_required(login_url='login:login')
 @csrf_protect
 def alumno_detalle_json(request, dni):
     dni_clean = str(dni).replace('.', '').replace(' ', '').replace('-', '').strip()[:20]
@@ -187,13 +250,17 @@ def alumno_detalle_json(request, dni):
 
     cursadas_data = []
     for c in cursadas_qs:
-        materia_name = c.comision.plan_estudio.materia.nombre_materia if c.comision and c.comision.plan_estudio else "Materia Indefinida"
-        carrera_name = c.comision.plan_estudio.carrera.nombre_carrera if c.comision and c.comision.plan_estudio else "Sin Carrera"
+        car = c.comision.plan_estudio.carrera if c.comision and c.comision.plan_estudio else None
+        materia_name = c.comision.plan_estudio.materia.nombre_materia if c.comision and c.comision.plan_estudio and c.comision.plan_estudio.materia else "Materia Indefinida"
+        carrera_name = car.nombre_carrera if car else "Sin Carrera"
+        carrera_res = car.resolucion_vigente if car else ""
         anio_carrera = c.comision.plan_estudio.anio_carrera if c.comision and c.comision.plan_estudio else 1
 
-        if carrera_name not in carreras_dict:
-            carreras_dict[carrera_name] = set()
-        carreras_dict[carrera_name].add(f"{anio_carrera}° Año")
+        if car:
+            key = (carrera_name, carrera_res)
+            if key not in carreras_dict:
+                carreras_dict[key] = set()
+            carreras_dict[key].add(anio_carrera)
 
         docentes_list = [f"{d.docente.persona.apellido}, {d.docente.persona.nombre}" for d in c.comision.docentes_asignados.all()]
         docentes_str = ", ".join(docentes_list) if docentes_list else "A designar"
@@ -214,7 +281,7 @@ def alumno_detalle_json(request, dni):
 
         cursadas_data.append({
             'id_cursada': c.id_cursada,
-            'carrera': carrera_name,
+            'carrera': f"{carrera_name} ({carrera_res})" if carrera_res else carrera_name,
             'materia': materia_name,
             'anio_carrera': anio_carrera,
             'comision': c.comision.codigo_comision if c.comision else '-',
@@ -227,21 +294,13 @@ def alumno_detalle_json(request, dni):
     cant_cursadas = len(cursadas_data)
     promedio_notas = round(total_notas / cant_notas, 2) if cant_notas > 0 else "N/A"
 
-    carreras_formatted = []
-    for car, ans in sorted(carreras_dict.items()):
-        ans_sorted = sorted(list(ans), key=lambda x: int(str(x).replace('°', '').replace('º', '')) if str(x).isdigit() or str(x).replace('°','').replace('º','').isdigit() else 0)
-        if len(ans_sorted) == 1:
-            ans_str = f"{ans_sorted[0]}° Año"
-        elif len(ans_sorted) == 2:
-            ans_str = f"{ans_sorted[0]}° y {ans_sorted[1]}° Año"
-        else:
-            ans_str = f"{', '.join(f'{a}°' for a in ans_sorted[:-1])} y {ans_sorted[-1]}° Año"
-        carreras_formatted.append(f"{car} ({ans_str})")
+    carreras_formatted = formatear_carreras_con_resolucion(carreras_dict)
 
     data = {
         'personal': {
-            'dni': persona.dni,
-            'cuil': persona.cuil or '',
+            'dni': formatear_dni(persona.dni),
+            'dni_raw': persona.dni,
+            'cuil': formatear_cuil(persona.cuil),
             'nombre': persona.nombre,
             'apellido': persona.apellido,
             'nombre_completo': f"{persona.apellido}, {persona.nombre}",
@@ -254,7 +313,7 @@ def alumno_detalle_json(request, dni):
             'mail': persona.mail or '',
             'domicilio': persona.domicilio or '',
             'localidad': persona.localidad or '',
-            'telefono': persona.telefono or ''
+            'telefono': formatear_telefono(persona.telefono)
         },
         'resumen_academico': {
             'carreras': carreras_formatted,
@@ -270,6 +329,7 @@ def alumno_detalle_json(request, dni):
     return JsonResponse(data)
 
 
+@login_required(login_url='login:login')
 @csrf_protect
 def imprimir_estado_academico(request, dni):
     dni_clean = str(dni).replace('.', '').replace(' ', '').replace('-', '').strip()[:20]
@@ -283,12 +343,16 @@ def imprimir_estado_academico(request, dni):
     context = {
         'persona': persona,
         'alumno': alumno,
+        'dni_formateado': formatear_dni(persona.dni),
+        'cuil_formateado': formatear_cuil(persona.cuil),
+        'telefono_formateado': formatear_telefono(persona.telefono),
         'cursadas': cursadas,
         'fecha_emision': datetime.date.today().strftime('%d/%m/%Y')
     }
     return render(request, 'gestion/imprimir_analitico.html', context)
 
 
+@login_required(login_url='login:login')
 @csrf_protect
 def descargar_libro_matriz(request, codigo_carrera=None):
     """
@@ -314,6 +378,7 @@ def descargar_libro_matriz(request, codigo_carrera=None):
     return response
 
 
+@login_required(login_url='login:login')
 def descargar_plantilla_alumnos(request):
     """
     Descarga la plantilla Excel (.xlsx) oficial formateada para la carga de alumnos.
@@ -329,6 +394,7 @@ def descargar_plantilla_alumnos(request):
     return response
 
 
+@login_required(login_url='login:login')
 @csrf_protect
 def importar_alumnos_view(request):
     """
@@ -349,4 +415,3 @@ def importar_alumnos_view(request):
 
     resultado = procesar_importacion_alumnos_excel(archivo)
     return JsonResponse(resultado)
-

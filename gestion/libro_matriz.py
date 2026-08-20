@@ -40,10 +40,6 @@ def generar_libro_matriz_excel(carrera_obj):
         cursadas__comision__plan_estudio__carrera=carrera_obj
     ).select_related('persona').distinct().order_by('persona__apellido', 'persona__nombre')
 
-    # Si no hay alumnos por cursada, intentar obtener todos los alumnos si es general
-    if not alumnos_carrera.exists():
-        alumnos_carrera = Alumno.objects.select_related('persona').all().order_by('persona__apellido', 'persona__nombre')
-
     # Planes y materias organizadas por año (1°, 2°, 3°)
     planes_carrera = PlanEstudio.objects.filter(carrera=carrera_obj).select_related('materia').order_by('anio_carrera', 'id_plan')
     materias_por_anio = {1: [], 2: [], 3: []}

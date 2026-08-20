@@ -3,12 +3,22 @@ import io
 import openpyxl
 from django.test import TestCase, Client
 from django.urls import reverse
+from django.contrib.auth import get_user_model
 from django.core.files.uploadedfile import SimpleUploadedFile
 from gestion.models import Persona, Alumno, Docente, Carrera, Materia, PlanEstudio, Comision, ComisionDocente, Cursada, Evaluacion
+from gestion.views import formatear_carreras_con_resolucion
 
 class BuscadorAlumnosTestCase(TestCase):
     def setUp(self):
         self.client = Client()
+
+        # Usuario autenticado para pruebas
+        User = get_user_model()
+        self.user = User.objects.create_superuser(
+            username='admin',
+            password='mde123'
+        )
+        self.client.login(username='admin', password='mde123')
 
         # Alumno 1: Masculino con correo
         self.persona1 = Persona.objects.create(
@@ -90,6 +100,13 @@ class BuscadorAlumnosTestCase(TestCase):
             situacion_final="Regular"
         )
 
+    def test_requiere_autenticacion_para_acceder_al_buscador(self):
+        """Un usuario anónimo debe ser redirigido a la pantalla de login."""
+        self.client.logout()
+        response = self.client.get(reverse('gestion:buscador'))
+        self.assertEqual(response.status_code, 302)
+        self.assertIn(reverse('login:login'), response.url)
+
     def test_edad_calculada_dinamicamente(self):
         """La edad no debe estar en la BD y debe calcularse dinámicamente según la fecha actual."""
         today = datetime.date.today()
@@ -113,6 +130,19 @@ class BuscadorAlumnosTestCase(TestCase):
         self.assertEqual(response.status_code, 200)
         self.assertContains(response, "Abeldaño Aquino, Gonzalo Daniel")
         self.assertContains(response, "Alegre, Aldana Micaela")
+        self.assertContains(response, "contenedorResultados")
+        self.assertContains(response, "toggleResultados")
+
+    def test_formatear_carreras_con_resolucion_y_anios(self):
+        dict_carreras = {
+            ('Técnico Superior en Energía', 'Res. 794/01'): {1, 2, 3},
+            ('Tecnicatura Superior en Higiene', 'Res. 320/13'): {1},
+            ('Tecnicatura en Logística', ''): {1, 2},
+        }
+        res = formatear_carreras_con_resolucion(dict_carreras)
+        self.assertIn('Técnico Superior en Energía (Res. 794/01) (1°, 2° y 3° Año)', res)
+        self.assertIn('Tecnicatura Superior en Higiene (Res. 320/13) (1° Año)', res)
+        self.assertIn('Tecnicatura en Logística (1° y 2° Año)', res)
 
     def test_busqueda_por_dni_con_y_sin_formato(self):
         # DNI exacto
@@ -189,13 +219,12 @@ class BuscadorAlumnosTestCase(TestCase):
         self.assertIn('Plantilla_Carga_Alumnos', response['Content-Disposition'])
 
     def test_importar_alumnos_excel_valido(self):
-        # Crear un archivo Excel en memoria para la prueba
         wb = openpyxl.Workbook()
         ws = wb.active
         ws.title = "Carga de Alumnos"
         ws.append(["DNI", "Apellido", "Nombre", "Carrera", "Año", "CUIL", "Fecha Nac", "Género", "Nacionalidad", "Localidad", "Domicilio", "Teléfono", "Mail"])
         ws.append(["48123456", "Rodríguez", "Lucas", "Tecnicatura Superior en Higiene", 1, "20481234568", "10/05/2003", "Masculino", "Argentina", "General Rodríguez", "Belgrano 450", "1144332211", "lucas.rodriguez@gmail.com"])
-        ws.append(["49654321", "Fernández", "Camila", "", "", "", "", "Femenino", "", "Moreno", "", "", ""]) # Flexible a datos faltantes
+        ws.append(["49654321", "Fernández", "Camila", "", "", "", "", "Femenino", "", "Moreno", "", "", ""])
         
         buf = io.BytesIO()
         wb.save(buf)
@@ -208,7 +237,6 @@ class BuscadorAlumnosTestCase(TestCase):
         self.assertTrue(data['success'])
         self.assertEqual(data['creados'], 2)
 
-        # Verificar que existen en la BD con los datos esperados
         p1 = Persona.objects.get(dni="48123456")
         self.assertEqual(p1.apellido, "Rodríguez")
         self.assertEqual(p1.nombre, "Lucas")

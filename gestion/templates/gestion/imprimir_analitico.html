@@ -125,8 +125,8 @@
     <div class="section-title">Datos Personales y Filiación del Estudiante</div>
     <div class="info-grid">
         <div class="info-item"><strong>Apellido y Nombre:</strong> {{ persona.apellido }}, {{ persona.nombre }}</div>
-        <div class="info-item"><strong>DNI:</strong> {{ persona.dni }}</div>
-        <div class="info-item"><strong>CUIL:</strong> {{ persona.cuil|default:"-" }}</div>
+        <div class="info-item"><strong>DNI:</strong> {{ dni_formateado }}</div>
+        <div class="info-item"><strong>CUIL:</strong> {{ cuil_formateado|default:"-" }}</div>
         <div class="info-item"><strong>N° Legajo:</strong> {{ alumno.legajo|default:"-" }}</div>
         <div class="info-item"><strong>Fecha de Nacimiento:</strong> {{ persona.fecha_nacimiento|date:"d/m/Y"|default:"-" }}</div>
         <div class="info-item"><strong>Edad:</strong> {% if persona.edad %}{{ persona.edad }} años{% else %}-{% endif %}</div>
@@ -134,7 +134,8 @@
         <div class="info-item"><strong>Nacionalidad:</strong> {{ persona.nacionalidad|default:"Argentina" }}</div>
         <div class="info-item"><strong>Localidad:</strong> {{ persona.localidad|default:"-" }}</div>
         <div class="info-item"><strong>Domicilio:</strong> {{ persona.domicilio|default:"-" }}</div>
-        <div class="info-item"><strong>Contacto:</strong> {{ persona.telefono|default:persona.mail|default:"-" }}</div>
+        <div class="info-item"><strong>Teléfono:</strong> {{ telefono_formateado|default:"-" }}</div>
+        <div class="info-item"><strong>Correo Electrónico:</strong> {{ persona.mail|default:"-" }}</div>
     </div>
 
     <div class="section-title">Historial de Inscripciones, Cursadas y Calificaciones</div>

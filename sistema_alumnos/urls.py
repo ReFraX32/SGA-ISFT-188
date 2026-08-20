@@ -13,6 +13,7 @@ def favicon_view(request):
 urlpatterns = [
     path('favicon.ico', favicon_view, name='favicon'),
     path('favicon.png', favicon_view, name='favicon_png'),
+    path('', include('login.urls')),
     path('', include('gestion.urls')),
 ]
 

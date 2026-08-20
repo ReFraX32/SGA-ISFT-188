@@ -1,0 +1,117 @@
+{% extends 'gestion/base.html' %}
+
+{% block title %}Acceso al Sistema — ISFT N° 188{% endblock %}
+
+{% block content %}
+<section class="min-h-[calc(100vh-14rem)] flex items-center justify-center py-6">
+    <div class="w-full max-w-md glass-card rounded-3xl p-6 sm:p-8 shadow-2xl border theme-border animate-in zoom-in-95 duration-200">
+        
+        <!-- Header de la tarjeta de Login -->
+        <div class="flex items-center gap-3.5 mb-6 pb-4 border-b theme-border">
+            <div class="w-12 h-12 rounded-2xl bg-gradient-to-tr from-indigo-600 to-purple-600 flex shrink-0 items-center justify-center text-white shadow-lg shadow-indigo-500/25">
+                <span class="material-symbols-outlined text-2xl" aria-hidden="true">lock</span>
+            </div>
+            <div>
+                <span class="text-[11px] uppercase tracking-widest text-indigo-500 font-bold block">Autenticación Institucional</span>
+                <h2 class="text-xl md:text-2xl font-black leading-tight theme-text-main">Ingreso al Sistema</h2>
+            </div>
+        </div>
+
+        <!-- Errores de Validación General -->
+        {% if form.non_field_errors %}
+            <div class="mb-5 rounded-2xl border border-rose-500/30 bg-rose-500/10 p-3.5 text-xs font-semibold text-rose-500 space-y-1">
+                {% for error in form.non_field_errors %}
+                    <div class="flex items-center gap-2">
+                        <span class="material-symbols-outlined text-sm shrink-0">error</span>
+                        <span>{{ error }}</span>
+                    </div>
+                {% endfor %}
+            </div>
+        {% endif %}
+
+        {% if messages %}
+            <div class="mb-5 space-y-2">
+                {% for message in messages %}
+                    <div class="rounded-2xl border border-indigo-500/30 bg-indigo-500/10 p-3.5 text-xs font-semibold text-indigo-400 flex items-center gap-2">
+                        <span class="material-symbols-outlined text-sm shrink-0">info</span>
+                        <span>{{ message }}</span>
+                    </div>
+                {% endfor %}
+            </div>
+        {% endif %}
+
+        <!-- Formulario de Acceso -->
+        <form method="POST" action="{% url 'login:login' %}" class="space-y-4" novalidate>
+            {% csrf_token %}
+            {% if redirect_field_value %}
+                <input type="hidden" name="{{ redirect_field_name }}" value="{{ redirect_field_value }}">
+            {% endif %}
+
+            <!-- Campo Usuario -->
+            <div>
+                <label for="{{ form.username.id_for_label }}" class="block text-[11px] font-bold uppercase tracking-wider theme-text-muted mb-1">
+                    Usuario
+                </label>
+                <div class="relative">
+                    <span class="material-symbols-outlined absolute left-3.5 top-1/2 -translate-y-1/2 theme-text-muted" aria-hidden="true">person</span>
+                    {{ form.username }}
+                </div>
+                {% for error in form.username.errors %}
+                    <p class="mt-1 text-xs font-semibold text-rose-500">{{ error }}</p>
+                {% endfor %}
+            </div>
+
+            <!-- Campo Contraseña -->
+            <div>
+                <label for="{{ form.password.id_for_label }}" class="block text-[11px] font-bold uppercase tracking-wider theme-text-muted mb-1">
+                    Contraseña
+                </label>
+                <div class="relative">
+                    <span class="material-symbols-outlined absolute left-3.5 top-1/2 -translate-y-1/2 theme-text-muted" aria-hidden="true">key</span>
+                    {{ form.password }}
+                    <button
+                        type="button"
+                        onclick="togglePasswordVisibility()"
+                        class="absolute right-2.5 top-1/2 -translate-y-1/2 p-1.5 rounded-lg theme-text-muted hover:text-indigo-500 hover:bg-indigo-500/10 transition-colors cursor-pointer"
+                        title="Mostrar u ocultar contraseña"
+                        aria-label="Mostrar u ocultar contraseña"
+                    >
+                        <span class="material-symbols-outlined text-lg" id="passwordToggleIcon" aria-hidden="true">visibility</span>
+                    </button>
+                </div>
+                {% for error in form.password.errors %}
+                    <p class="mt-1 text-xs font-semibold text-rose-500">{{ error }}</p>
+                {% endfor %}
+            </div>
+
+            <!-- Botón de Envío -->
+            <button
+                type="submit"
+                class="w-full bg-gradient-to-r from-indigo-600 to-indigo-700 hover:from-indigo-500 hover:to-indigo-600 text-white font-bold py-3 px-5 rounded-xl shadow-lg shadow-indigo-600/30 transition-all flex items-center justify-center gap-2 text-sm cursor-pointer mt-2"
+            >
+                <span class="material-symbols-outlined text-base" aria-hidden="true">login</span>
+                <span>Ingresar al Sistema</span>
+            </button>
+        </form>
+
+        <div class="mt-6 pt-4 border-t theme-border text-center">
+            <p class="text-[11px] theme-text-muted">
+                Acceso restringido exclusivamente a directivos y personal del ISFT N° 188.
+            </p>
+        </div>
+    </div>
+</section>
+{% endblock %}
+
+{% block extra_scripts %}
+<script>
+    function togglePasswordVisibility() {
+        const passwordInput = document.getElementById('{{ form.password.id_for_label }}');
+        const passwordIcon = document.getElementById('passwordToggleIcon');
+        const showPassword = passwordInput.type === 'password';
+
+        passwordInput.type = showPassword ? 'text' : 'password';
+        passwordIcon.innerText = showPassword ? 'visibility_off' : 'visibility';
+    }
+</script>
+{% endblock %}
