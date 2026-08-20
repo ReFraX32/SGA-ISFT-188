@@ -48,6 +48,9 @@ fi
 echo "Ejecutando migraciones de Django..."
 python manage.py migrate --noinput
 
+echo "Aprovisionando usuario administrador institucional (admin / mde123)..."
+python manage.py crear_usuario_admin || true
+
 echo "Recolectando archivos estáticos con WhiteNoise..."
 python manage.py collectstatic --noinput
 

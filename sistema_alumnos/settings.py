@@ -161,4 +161,22 @@ STATICFILES_DIRS = [
 ]
 STATIC_ROOT = BASE_DIR / 'staticfiles'
 
+# Soporte para servidores remotos detras de proxies SSL (Railway, Render, Fly, etc.)
+SECURE_PROXY_SSL_HEADER = ('HTTP_X_FORWARDED_PROTO', 'https')
+
+csrf_trusted_env = os.environ.get('CSRF_TRUSTED_ORIGINS', '')
+if csrf_trusted_env:
+    CSRF_TRUSTED_ORIGINS = [o.strip() for o in csrf_trusted_env.split(',') if o.strip()]
+else:
+    CSRF_TRUSTED_ORIGINS = [
+        'https://*.up.railway.app',
+        'https://*.onrender.com',
+        'https://*.fly.dev',
+        'https://*.herokuapp.com',
+        'http://localhost:8000',
+        'http://127.0.0.1:8000',
+        'http://localhost:3000',
+    ]
+
+
 
