@@ -67,7 +67,7 @@ def parsear_fecha_flexible(fecha_raw):
     return None
 
 def normalizar_genero(genero_raw):
-    """Normaliza la identidad de género a las opciones válidas: M, F, X, N."""
+    """Normaliza la identidad de género a las opciones válidas: M, F, I, N."""
     if not genero_raw:
         return 'N'
     g_str = str(genero_raw).strip().lower()
@@ -75,8 +75,8 @@ def normalizar_genero(genero_raw):
         return 'M'
     elif g_str in ['f', 'femenino', 'mujer', 'female']:
         return 'F'
-    elif g_str in ['x', 'no binario', 'no-binario', 'nobinario', 'otro', 'otra', 'diversidad']:
-        return 'X'
+    elif g_str in ['i', 'indistinto', 'indistinta', 'x', 'no binario', 'no-binario', 'nobinario', 'otro', 'otra', 'o', 'diversidad']:
+        return 'I'
     return 'N'
 
 def normalizar_mail(mail_raw):
@@ -144,7 +144,7 @@ def generar_plantilla_alumnos_excel():
         ("Año de Cursada", "1, 2 o 3 (Año lectivo en la carrera)"),
         ("CUIL", "Opcional (ej: 20450399966)"),
         ("Fecha de Nacimiento", "Opcional (Formato DD/MM/AAAA ej: 15/04/2001)"),
-        ("Identidad de Género", "Opcional (Masculino, Femenino, Otro, Prefiere no decir)"),
+        ("Identidad de Género", "Opcional (Masculino, Femenino, Indistinto, Prefiere no decir)"),
         ("Nacionalidad", "Opcional (por defecto Argentina)"),
         ("Localidad", "Opcional (ej: General Rodríguez, Moreno, Luján)"),
         ("Domicilio", "Opcional (ej: Av. España 1234)"),
@@ -215,7 +215,7 @@ def generar_plantilla_alumnos_excel():
         ws_ref.column_dimensions[col_letter].width = max(max_len + 4, 20)
 
     # Validaciones de Lista
-    dv_genero = DataValidation(type="list", formula1='"Masculino,Femenino,Otro,Prefiere no decir"', allow_blank=True)
+    dv_genero = DataValidation(type="list", formula1='"Masculino,Femenino,Indistinto,Prefiere no decir"', allow_blank=True)
     ws.add_data_validation(dv_genero)
     dv_genero.add("H4:H1000")
 
@@ -325,10 +325,10 @@ def procesar_importacion_alumnos_excel(file_obj):
         genero_clean = normalizar_genero(genero_raw)
 
         nacionalidad_raw = ws.cell(r, col_map["nacionalidad"]).value if "nacionalidad" in col_map else None
-        nacionalidad_clean = str(nacionalidad_raw).strip() if nacionalidad_raw else "Argentina"
+        nacionalidad_clean = normalizar_nombre_propio(nacionalidad_raw) if (nacionalidad_raw and str(nacionalidad_raw).strip() not in ['', 'None', '-']) else "Argentina"
 
         localidad_raw = ws.cell(r, col_map["localidad"]).value if "localidad" in col_map else None
-        localidad_clean = str(localidad_raw).strip() if localidad_raw else None
+        localidad_clean = normalizar_nombre_propio(localidad_raw) if (localidad_raw and str(localidad_raw).strip() not in ['', 'None', '-']) else None
 
         domicilio_raw = ws.cell(r, col_map["domicilio"]).value if "domicilio" in col_map else None
         domicilio_clean = str(domicilio_raw).strip() if domicilio_raw else None

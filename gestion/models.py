@@ -5,7 +5,7 @@ class Persona(models.Model):
     GENERO_CHOICES = [
         ('M', 'Masculino'),
         ('F', 'Femenino'),
-        ('O', 'Otro'),
+        ('I', 'Indistinto'),
         ('N', 'Prefiere no decir'),
     ]
 
@@ -18,7 +18,7 @@ class Persona(models.Model):
     localidad = models.CharField(max_length=100, blank=True, null=True, db_index=True, verbose_name="Localidad")
     telefono = models.CharField(max_length=50, blank=True, null=True, verbose_name="Teléfono / Celular")
     mail = models.EmailField(blank=True, null=True, verbose_name="Correo Electrónico")
-    nacionalidad = models.CharField(max_length=100, blank=True, null=True, default="Argentina", verbose_name="Nacionalidad")
+    nacionalidad = models.CharField(max_length=100, blank=True, null=True, default="Argentina", db_index=True, verbose_name="Nacionalidad")
     fecha_nacimiento = models.DateField(blank=True, null=True, verbose_name="Fecha de Nacimiento")
     identidad = models.CharField(max_length=1, choices=GENERO_CHOICES, default='N', db_index=True, verbose_name="Identidad de Género")
 

@@ -78,22 +78,27 @@ def formatear_carreras_con_resolucion(carreras_dict):
 @login_required(login_url='login:login')
 @csrf_protect
 def buscador_view(request):
-    if request.method == 'POST':
-        query = request.POST.get('q', '').strip()
-        carrera_id = request.POST.get('carrera', '').strip()
-        anio_filtro = request.POST.get('anio', '').strip()
-        localidad_filtro = request.POST.get('localidad', '').strip()
-        orden_filtro = request.POST.get('orden', 'apellido').strip()
-        page_num = request.POST.get('page', '1').strip()
-        page_size_val = request.POST.get('page_size', '25').strip()
-    else:
-        query = request.GET.get('q', '').strip()
-        carrera_id = request.GET.get('carrera', '').strip()
-        anio_filtro = request.GET.get('anio', '').strip()
-        localidad_filtro = request.GET.get('localidad', '').strip()
-        orden_filtro = request.GET.get('orden', 'apellido').strip()
-        page_num = request.GET.get('page', '1').strip()
-        page_size_val = request.GET.get('page_size', '25').strip()
+    req_data = request.POST if request.method == 'POST' else request.GET
+
+    query = req_data.get('q', '').strip()
+    carrera_nombre = req_data.get('carrera_nombre', '').strip()
+    plan_id = req_data.get('plan_id', '').strip()
+    # Compatibilidad con parametro 'carrera' previo
+    carrera_legacy = req_data.get('carrera', '').strip()
+    if carrera_legacy and not carrera_nombre and not plan_id:
+        if Carrera.objects.filter(codigo_carrera=carrera_legacy).exists():
+            plan_id = carrera_legacy
+            carrera_nombre = Carrera.objects.get(codigo_carrera=carrera_legacy).nombre_carrera
+        else:
+            carrera_nombre = carrera_legacy
+
+    anio_filtro = req_data.get('anio', '').strip()
+    genero_filtro = req_data.get('genero', '').strip()
+    nacionalidad_filtro = req_data.get('nacionalidad', '').strip()
+    localidad_filtro = req_data.get('localidad', '').strip()
+    orden_filtro = req_data.get('orden', 'apellido').strip()
+    page_num = req_data.get('page', '1').strip()
+    page_size_val = req_data.get('page_size', '25').strip()
 
     if len(query) > 100:
         query = query[:100]
@@ -133,20 +138,34 @@ def buscador_view(request):
 
         alumnos = alumnos.filter(filtros_q).distinct()
 
-    # Filtro por Carrera
-    if carrera_id:
-        alumnos = alumnos.filter(cursadas__comision__plan_estudio__carrera__codigo_carrera=carrera_id).distinct()
+    # 1. Filtro por Plan de Estudio específico o Carrera General (sin importar el plan)
+    if plan_id:
+        alumnos = alumnos.filter(cursadas__comision__plan_estudio__carrera__codigo_carrera=plan_id).distinct()
+    elif carrera_nombre:
+        alumnos = alumnos.filter(cursadas__comision__plan_estudio__carrera__nombre_carrera=carrera_nombre).distinct()
 
-    # Filtro por Año de Cursada
+    # 2. Filtro por Identidad de Género
+    if genero_filtro in ['M', 'F', 'I', 'N']:
+        alumnos = alumnos.filter(persona__identidad=genero_filtro)
+
+    # 3. Filtro por Nacionalidad (búsqueda optimizada por coincidencia exacta insensible a mayúsculas)
+    if nacionalidad_filtro:
+        alumnos = alumnos.filter(persona__nacionalidad__iexact=nacionalidad_filtro)
+
+    # 4. Filtro por Año de Cursada
     if anio_filtro and anio_filtro.isdigit():
         alumnos = alumnos.filter(cursadas__comision__plan_estudio__anio_carrera=int(anio_filtro)).distinct()
 
-    # Filtro por Localidad
+    # 5. Filtro por Localidad
     if localidad_filtro:
-        alumnos = alumnos.filter(persona__localidad__icontains=localidad_filtro)
+        alumnos = alumnos.filter(persona__localidad__iexact=localidad_filtro)
 
+    # Consultas optimizadas de filtros dinámicos basados en la base de datos
+    carreras_unicas = list(Carrera.objects.values_list('nombre_carrera', flat=True).distinct().order_by('nombre_carrera'))
+    carreras_planes = list(Carrera.objects.values('codigo_carrera', 'nombre_carrera', 'resolucion_vigente').order_by('nombre_carrera', 'resolucion_vigente'))
     carreras = Carrera.objects.all().order_by('nombre_carrera', 'resolucion_vigente')
-    localidades = Persona.objects.exclude(localidad__isnull=True).exclude(localidad__exact='').values_list('localidad', flat=True).distinct().order_by('localidad')
+    localidades = list(Persona.objects.exclude(localidad__isnull=True).exclude(localidad__exact='').values_list('localidad', flat=True).distinct().order_by('localidad'))
+    nacionalidades = list(Persona.objects.exclude(nacionalidad__isnull=True).exclude(nacionalidad__exact='').values_list('nacionalidad', flat=True).distinct().order_by('nacionalidad'))
 
     alumnos_list = []
     for al in alumnos:
@@ -187,6 +206,9 @@ def buscador_view(request):
             'edad': al.persona.edad,
             'carreras': ", ".join(carreras_formatted_list) if carreras_formatted_list else "Sin Inscripción Activa",
             'localidad': al.persona.localidad or 'Sin registrar',
+            'nacionalidad': al.persona.nacionalidad or 'Argentina',
+            'genero_sigla': al.persona.identidad,
+            'genero_desc': al.persona.genero_descripcion,
             'cuil': al.persona.cuil or '-',
             'total_cursadas': cursadas.count(),
             'promocionadas': promocionadas,
@@ -209,6 +231,8 @@ def buscador_view(request):
         alumnos_list.sort(key=lambda x: (x['edad'] is None, -(x['edad'] or 0)))
     elif orden_filtro == 'localidad':
         alumnos_list.sort(key=lambda x: (x['localidad'] or '').lower())
+    elif orden_filtro == 'nacionalidad':
+        alumnos_list.sort(key=lambda x: (x['nacionalidad'] or '').lower())
     else:
         alumnos_list.sort(key=lambda x: (x['persona'].apellido or '').lower())
 
@@ -218,16 +242,24 @@ def buscador_view(request):
 
     context = {
         'query': query,
-        'carrera_id': carrera_id,
+        'carrera_nombre': carrera_nombre,
+        'plan_id': plan_id,
+        'carrera_id': plan_id or carrera_nombre,
         'anio_filtro': anio_filtro,
+        'genero_filtro': genero_filtro,
+        'nacionalidad_filtro': nacionalidad_filtro,
         'localidad_filtro': localidad_filtro,
         'orden_filtro': orden_filtro,
         'page_size': page_size,
         'page_obj': page_obj,
         'alumnos_list': page_obj.object_list,
         'total_resultados': len(alumnos_list),
+        'carreras_unicas': carreras_unicas,
+        'carreras_planes': carreras_planes,
         'carreras': carreras,
         'localidades': localidades,
+        'nacionalidades': nacionalidades,
+        'generos_choices': Persona.GENERO_CHOICES,
     }
     return render(request, 'gestion/buscador.html', context)
 
@@ -358,24 +390,36 @@ def descargar_libro_matriz(request, codigo_carrera=None):
     """
     Descarga el Libro Matriz oficial en formato Excel (.xlsx) para la carrera solicitada.
     """
-    cod = codigo_carrera or request.GET.get('carrera') or request.POST.get('carrera')
-    if cod:
-        carrera_obj = get_object_or_404(Carrera, codigo_carrera=cod)
-    else:
-        carrera_obj = Carrera.objects.filter(codigo_carrera='ENERGIA-794').first() or Carrera.objects.first()
-        if not carrera_obj:
-            raise Http404("No hay carreras registradas en el sistema.")
+    try:
+        cod = codigo_carrera or request.GET.get('carrera') or request.POST.get('carrera')
+        if cod:
+            carrera_obj = get_object_or_404(Carrera, codigo_carrera=cod)
+        else:
+            carrera_obj = Carrera.objects.filter(codigo_carrera='ENERGIA-794').first() or Carrera.objects.first()
+            if not carrera_obj:
+                raise Http404("No hay carreras registradas en el sistema.")
 
-    excel_stream = generar_libro_matriz_excel(carrera_obj)
-    nombre_archivo_limpio = "".join(c for c in carrera_obj.nombre_carrera if c.isalnum() or c in (' ', '_', '-')).rstrip()
-    filename = f"LIBRO_MATRIZ_{nombre_archivo_limpio.replace(' ', '_')}.xlsx"
-    
-    response = HttpResponse(
-        excel_stream.read(),
-        content_type='application/vnd.openxmlformats-officedocument.spreadsheetml.sheet'
-    )
-    response['Content-Disposition'] = f'attachment; filename="{filename}"'
-    return response
+        excel_stream = generar_libro_matriz_excel(carrera_obj)
+        nombre_archivo_limpio = "".join(c for c in carrera_obj.nombre_carrera if c.isalnum() or c in (' ', '_', '-')).rstrip()
+        filename = f"LIBRO_MATRIZ_{nombre_archivo_limpio.replace(' ', '_')}.xlsx"
+        
+        response = HttpResponse(
+            excel_stream.read(),
+            content_type='application/vnd.openxmlformats-officedocument.spreadsheetml.sheet'
+        )
+        response['Content-Disposition'] = f'attachment; filename="{filename}"'
+        response['Access-Control-Expose-Headers'] = 'Content-Disposition'
+        return response
+    except Http404:
+        raise
+    except Exception as e:
+        import logging
+        logging.getLogger(__name__).error(f"Error generando libro matriz: {e}", exc_info=True)
+        return HttpResponse(
+            f"Error al generar el Libro Matriz: {str(e)}",
+            status=500,
+            content_type="text/plain; charset=utf-8"
+        )
 
 
 @login_required(login_url='login:login')

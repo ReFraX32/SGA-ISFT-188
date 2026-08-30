@@ -25,7 +25,10 @@
     <!-- Favicon Oficial ISFT 188 -->
     <link rel="icon" type="image/png" href="{% static 'favicon.png' %}"/>
 
-    <!-- Tailwind CSS CDN -->
+    <!-- Estilos Locales Offline-First -->
+    <link rel="stylesheet" href="{% static 'css/app.css' %}"/>
+
+    <!-- Tailwind CSS CDN (Mejora progresiva si hay internet) -->
     <script src="https://cdn.tailwindcss.com?plugins=forms,container-queries"></script>
     <script>
         tailwind.config = {
@@ -79,34 +82,34 @@
             --stat-card-border: rgba(255, 255, 255, 0.1);
         }
 
-        /* Variables de Tema Claro */
+        /* Variables de Tema Claro (Suave, descansado para la vista, sin encandilar) */
         html.light {
-            --bg-body: #f8fafc;
-            --text-main: #0f172a;
+            --bg-body: #e2e8f0;
+            --text-main: #1e293b;
             --text-muted: #64748b;
-            --glass-bg: #ffffff;
-            --glass-border: rgba(0, 0, 0, 0.08);
-            --card-inner-bg: #f1f5f9;
-            --card-inner-border: rgba(0, 0, 0, 0.06);
-            --input-bg: #ffffff;
+            --glass-bg: rgba(248, 250, 252, 0.94);
+            --glass-border: rgba(148, 163, 184, 0.35);
+            --card-inner-bg: rgba(226, 232, 240, 0.75);
+            --card-inner-border: rgba(148, 163, 184, 0.28);
+            --input-bg: #f8fafc;
             --input-border: #cbd5e1;
             --input-text: #0f172a;
-            --option-bg: #ffffff;
+            --option-bg: #f8fafc;
             --option-text: #0f172a;
-            --header-bg: rgba(255, 255, 255, 0.98);
-            --header-border: rgba(0, 0, 0, 0.08);
-            --modal-bg: #ffffff;
-            --modal-card-bg: #f8fafc;
-            --modal-card-border: #e2e8f0;
-            --dropdown-bg: #ffffff;
-            --dropdown-border: rgba(0, 0, 0, 0.12);
-            --dropdown-text: #0f172a;
-            --dropdown-hover: rgba(99, 102, 241, 0.08);
-            --table-header-bg: #f8fafc;
-            --table-row-hover: rgba(99, 102, 241, 0.06);
-            --table-border: rgba(0, 0, 0, 0.06);
-            --stat-card-bg: #ffffff;
-            --stat-card-border: #e2e8f0;
+            --header-bg: rgba(241, 245, 249, 0.96);
+            --header-border: rgba(148, 163, 184, 0.35);
+            --modal-bg: #f1f5f9;
+            --modal-card-bg: #e2e8f0;
+            --modal-card-border: #cbd5e1;
+            --dropdown-bg: #f8fafc;
+            --dropdown-border: rgba(148, 163, 184, 0.35);
+            --dropdown-text: #1e293b;
+            --dropdown-hover: rgba(99, 102, 241, 0.1);
+            --table-header-bg: #cbd5e1;
+            --table-row-hover: rgba(99, 102, 241, 0.08);
+            --table-border: rgba(148, 163, 184, 0.3);
+            --stat-card-bg: rgba(248, 250, 252, 0.92);
+            --stat-card-border: rgba(148, 163, 184, 0.35);
         }
 
         body {
@@ -286,6 +289,35 @@
         {% block content %}{% endblock %}
     </main>
 
+    <!-- Pantalla de Carga Global Amigable (Accesible y no técnica) -->
+    <div id="globalLoadingOverlay" class="fixed inset-0 z-[99999] hidden flex items-center justify-center p-4 bg-black/75 backdrop-blur-md transition-opacity duration-200" style="opacity: 0;">
+        <div class="glass-modal w-full max-w-sm rounded-3xl p-6 sm:p-8 text-center space-y-4 shadow-2xl border theme-border transform scale-95 transition-transform duration-200" style="background: var(--modal-bg);">
+            <!-- Icono animado con escudo/pulso -->
+            <div class="relative w-16 h-16 mx-auto flex items-center justify-center">
+                <div class="absolute inset-0 rounded-2xl bg-indigo-500/20 animate-ping"></div>
+                <div class="relative w-16 h-16 rounded-2xl bg-gradient-to-tr from-indigo-600 to-indigo-500 flex items-center justify-center text-white shadow-xl shadow-indigo-500/30">
+                    <span class="material-symbols-outlined text-3xl" id="globalLoadingIcon">school</span>
+                </div>
+            </div>
+
+            <!-- Textos amigables no técnicos -->
+            <div class="space-y-1.5">
+                <h3 class="text-base sm:text-lg font-black theme-text-main" id="globalLoadingTitle">
+                    Cargando información...
+                </h3>
+                <p class="text-xs theme-text-muted leading-relaxed max-w-xs mx-auto" id="globalLoadingMessage">
+                    Estamos preparando los datos para mostrártelos. Aguardá unos instantes...
+                </p>
+            </div>
+
+            <!-- Barra/indicador de progreso visual -->
+            <div class="flex items-center justify-center gap-2 text-xs font-bold text-indigo-500 pt-1">
+                <div class="w-4 h-4 border-2 border-indigo-500 border-t-transparent rounded-full animate-spin"></div>
+                <span id="globalLoadingStatus">Procesando...</span>
+            </div>
+        </div>
+    </div>
+
     <!-- Pie de Pagina -->
     <footer class="border-t py-4 px-8 text-center text-xs theme-text-muted" style="border-color: var(--header-border); background: var(--card-inner-bg);">
         ISFT N° 188 — General Rodríguez
@@ -324,6 +356,49 @@
             const newTheme = currentTheme === 'dark' ? 'light' : 'dark';
             applyTheme(newTheme);
         }
+
+        // Helpers de Pantalla de Carga Global
+        window.mostrarCargando = function(titulo, mensaje, status) {
+            const overlay = document.getElementById('globalLoadingOverlay');
+            if (!overlay) return;
+            if (titulo) document.getElementById('globalLoadingTitle').innerText = titulo;
+            if (mensaje) document.getElementById('globalLoadingMessage').innerText = mensaje;
+            if (status) document.getElementById('globalLoadingStatus').innerText = status;
+            
+            overlay.classList.remove('hidden');
+            requestAnimationFrame(() => {
+                overlay.style.opacity = '1';
+                const modal = overlay.querySelector('.glass-modal');
+                if (modal) modal.classList.remove('scale-95');
+            });
+        };
+
+        window.ocultarCargando = function() {
+            const overlay = document.getElementById('globalLoadingOverlay');
+            if (!overlay || overlay.classList.contains('hidden')) return;
+            overlay.style.opacity = '0';
+            const modal = overlay.querySelector('.glass-modal');
+            if (modal) modal.classList.add('scale-95');
+            setTimeout(() => {
+                overlay.classList.add('hidden');
+                document.getElementById('globalLoadingTitle').innerText = 'Cargando información...';
+                document.getElementById('globalLoadingMessage').innerText = 'Estamos preparando los datos para mostrártelos. Aguardá unos instantes...';
+                document.getElementById('globalLoadingStatus').innerText = 'Procesando...';
+            }, 200);
+        };
+
+        // Auto-ocultar al restaurar desde caché del navegador (botón atrás/adelante)
+        window.addEventListener('pageshow', () => {
+            window.ocultarCargando();
+        });
+
+        // Interceptar envíos de formularios para mostrar feedback amigable
+        document.addEventListener('submit', function(e) {
+            if (e.target && e.target.getAttribute('onsubmit') && e.target.getAttribute('onsubmit').includes('enviarExcelEstudiantes')) {
+                return;
+            }
+            window.mostrarCargando('Buscando estudiantes...', 'Estamos actualizando el listado según los filtros elegidos.', 'Aguardá un momento...');
+        });
 
         document.addEventListener('DOMContentLoaded', () => {
             const savedTheme = localStorage.getItem('isft188_theme') || 'dark';

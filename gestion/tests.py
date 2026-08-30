@@ -58,7 +58,26 @@ class BuscadorAlumnosTestCase(TestCase):
             legajo="LEG-39110038"
         )
 
-        # Carrera y Materias
+        # Alumno 3: Indistinto con otra nacionalidad
+        self.persona3 = Persona.objects.create(
+            dni="41000000",
+            cuil="20410000006",
+            nombre="Sam",
+            apellido="Frette",
+            domicilio="Belgrano 134",
+            localidad="Jáuregui",
+            telefono="+5492323359296",
+            mail="sam.frette@gmail.com",
+            nacionalidad="Uruguaya",
+            fecha_nacimiento=datetime.date(2001, 12, 2),
+            identidad="I"
+        )
+        self.alumno3 = Alumno.objects.create(
+            persona=self.persona3,
+            legajo="LEG-41000000"
+        )
+
+        # Carrera 1 (Res. 320/13) y Materias
         self.carrera = Carrera.objects.create(
             codigo_carrera="HIGIENE-320",
             nombre_carrera="Tecnicatura Superior en Higiene y Seguridad en el Trabajo",
@@ -81,6 +100,25 @@ class BuscadorAlumnosTestCase(TestCase):
             anio_lectivo=2026
         )
 
+        # Carrera 2 (Misma carrera, distinta resolución: Res. 6183/25)
+        self.carrera2 = Carrera.objects.create(
+            codigo_carrera="HIGIENE-6183",
+            nombre_carrera="Tecnicatura Superior en Higiene y Seguridad en el Trabajo",
+            resolucion_vigente="Res. 6183/25"
+        )
+        self.plan2 = PlanEstudio.objects.create(
+            carrera=self.carrera2,
+            materia=self.materia1,
+            anio_carrera=1,
+            carga_horaria_anual=96,
+            carga_horaria_semanal=3
+        )
+        self.comision2 = Comision.objects.create(
+            codigo_comision="COM_HIG_6183_2026",
+            plan_estudio=self.plan2,
+            anio_lectivo=2026
+        )
+
         # Cursadas y Evaluaciones
         self.cursada1 = Cursada.objects.create(
             comision=self.comision1,
@@ -98,6 +136,12 @@ class BuscadorAlumnosTestCase(TestCase):
             comision=self.comision1,
             alumno=self.alumno2,
             situacion_final="Regular"
+        )
+
+        self.cursada3 = Cursada.objects.create(
+            comision=self.comision2,
+            alumno=self.alumno3,
+            situacion_final="Promocionado"
         )
 
     def test_requiere_autenticacion_para_acceder_al_buscador(self):
@@ -166,11 +210,71 @@ class BuscadorAlumnosTestCase(TestCase):
         self.assertContains(response, "Abeldaño Aquino")
         self.assertNotContains(response, "Alegre, Aldana Micaela")
 
-    def test_filtro_por_carrera(self):
-        response = self.client.post(reverse('gestion:buscador'), {'carrera': 'HIGIENE-320'})
+    def test_filtro_por_carrera_sin_importar_plan(self):
+        """Al filtrar por el nombre de la carrera, deben mostrarse todos los estudiantes sin importar la resolución/plan."""
+        response = self.client.post(reverse('gestion:buscador'), {
+            'carrera_nombre': 'Tecnicatura Superior en Higiene y Seguridad en el Trabajo'
+        })
         self.assertEqual(response.status_code, 200)
+        # Alumno 1 y 2 cursan Res. 320/13 y Alumno 3 cursa Res. 6183/25 -> Todos deben aparecer
         self.assertContains(response, "Abeldaño Aquino")
         self.assertContains(response, "Alegre, Aldana Micaela")
+        self.assertContains(response, "Frette, Sam")
+
+    def test_filtro_por_plan_estudio_especifico(self):
+        """Al filtrar por un plan/resolución específico, solo se muestran los estudiantes de ese plan."""
+        # Filtrar por Res. 6183/25
+        response = self.client.post(reverse('gestion:buscador'), {'plan_id': 'HIGIENE-6183'})
+        self.assertEqual(response.status_code, 200)
+        self.assertContains(response, "Frette, Sam")
+        self.assertNotContains(response, "Abeldaño Aquino")
+        self.assertNotContains(response, "Alegre, Aldana Micaela")
+
+        # Filtrar por Res. 320/13
+        response2 = self.client.post(reverse('gestion:buscador'), {'plan_id': 'HIGIENE-320'})
+        self.assertEqual(response2.status_code, 200)
+        self.assertContains(response2, "Abeldaño Aquino")
+        self.assertContains(response2, "Alegre, Aldana Micaela")
+        self.assertNotContains(response2, "Frette, Sam")
+
+    def test_filtro_por_identidad_genero(self):
+        """Debe filtrar correctamente por identidad de género (M, F, I, N)."""
+        # Filtrar por Indistinto (I)
+        response_i = self.client.post(reverse('gestion:buscador'), {'genero': 'I'})
+        self.assertEqual(response_i.status_code, 200)
+        self.assertContains(response_i, "Frette, Sam")
+        self.assertNotContains(response_i, "Abeldaño Aquino")
+        self.assertNotContains(response_i, "Alegre, Aldana Micaela")
+
+        # Filtrar por Femenino (F)
+        response_f = self.client.post(reverse('gestion:buscador'), {'genero': 'F'})
+        self.assertEqual(response_f.status_code, 200)
+        self.assertContains(response_f, "Alegre, Aldana Micaela")
+        self.assertNotContains(response_f, "Abeldaño Aquino")
+        self.assertNotContains(response_f, "Frette, Sam")
+
+        # Filtrar por Masculino (M)
+        response_m = self.client.post(reverse('gestion:buscador'), {'genero': 'M'})
+        self.assertEqual(response_m.status_code, 200)
+        self.assertContains(response_m, "Abeldaño Aquino")
+        self.assertNotContains(response_m, "Alegre, Aldana Micaela")
+        self.assertNotContains(response_m, "Frette, Sam")
+
+    def test_filtro_por_nacionalidad(self):
+        """Debe filtrar de forma exacta u optimizada por nacionalidad."""
+        # Filtrar por Uruguaya
+        response = self.client.post(reverse('gestion:buscador'), {'nacionalidad': 'Uruguaya'})
+        self.assertEqual(response.status_code, 200)
+        self.assertContains(response, "Frette, Sam")
+        self.assertNotContains(response, "Abeldaño Aquino")
+        self.assertNotContains(response, "Alegre, Aldana Micaela")
+
+        # Filtrar por Argentina
+        response_arg = self.client.post(reverse('gestion:buscador'), {'nacionalidad': 'Argentina'})
+        self.assertEqual(response_arg.status_code, 200)
+        self.assertContains(response_arg, "Abeldaño Aquino")
+        self.assertContains(response_arg, "Alegre, Aldana Micaela")
+        self.assertNotContains(response_arg, "Frette, Sam")
 
     def test_filtro_por_anio_cursada(self):
         response = self.client.post(reverse('gestion:buscador'), {'anio': '1'})
@@ -200,6 +304,14 @@ class BuscadorAlumnosTestCase(TestCase):
         self.assertEqual(json2['personal']['genero_sigla'], 'F')
         self.assertEqual(json2['personal']['genero_desc'], 'Femenino')
 
+        # Alumno con género Indistinto ('I')
+        response3 = self.client.get(reverse('gestion:alumno_detalle_json', kwargs={'dni': '41000000'}))
+        self.assertEqual(response3.status_code, 200)
+        json3 = response3.json()
+        self.assertEqual(json3['personal']['genero_sigla'], 'I')
+        self.assertEqual(json3['personal']['genero_desc'], 'Indistinto')
+        self.assertEqual(json3['personal']['nacionalidad'], 'Uruguaya')
+
     def test_descargar_libro_matriz_excel(self):
         response = self.client.get(reverse('gestion:descargar_libro_matriz_carrera', kwargs={'codigo_carrera': 'HIGIENE-320'}))
         self.assertEqual(response.status_code, 200)
@@ -225,6 +337,7 @@ class BuscadorAlumnosTestCase(TestCase):
         ws.append(["DNI", "Apellido", "Nombre", "Carrera", "Año", "CUIL", "Fecha Nac", "Género", "Nacionalidad", "Localidad", "Domicilio", "Teléfono", "Mail"])
         ws.append(["48123456", "Rodríguez", "Lucas", "Tecnicatura Superior en Higiene", 1, "20481234568", "10/05/2003", "Masculino", "Argentina", "General Rodríguez", "Belgrano 450", "1144332211", "lucas.rodriguez@gmail.com"])
         ws.append(["49654321", "Fernández", "Camila", "", "", "", "", "Femenino", "", "Moreno", "", "", ""])
+        ws.append(["50111222", "López", "Alex", "", "", "", "", "Indistinto", "Mexicana", "Luján", "", "", ""])
         
         buf = io.BytesIO()
         wb.save(buf)
@@ -235,17 +348,26 @@ class BuscadorAlumnosTestCase(TestCase):
         self.assertEqual(response.status_code, 200)
         data = response.json()
         self.assertTrue(data['success'])
-        self.assertEqual(data['creados'], 2)
+        self.assertEqual(data['creados'], 3)
 
         p1 = Persona.objects.get(dni="48123456")
         self.assertEqual(p1.apellido, "Rodríguez")
         self.assertEqual(p1.nombre, "Lucas")
         self.assertEqual(p1.mail, "lucas.rodriguez@gmail.com")
+        self.assertEqual(p1.identidad, "M")
 
         p2 = Persona.objects.get(dni="49654321")
         self.assertEqual(p2.apellido, "Fernández")
         self.assertEqual(p2.nombre, "Camila")
         self.assertIsNone(p2.mail)
+        self.assertEqual(p2.identidad, "F")
+
+        p3 = Persona.objects.get(dni="50111222")
+        self.assertEqual(p3.apellido, "López")
+        self.assertEqual(p3.nombre, "Alex")
+        self.assertEqual(p3.identidad, "I")
+        self.assertEqual(p3.genero_descripcion, "Indistinto")
+        self.assertEqual(p3.nacionalidad, "Mexicana")
 
     def test_imprimir_estado_academico(self):
         response = self.client.get(reverse('gestion:imprimir_estado_academico', kwargs={'dni': '45039996'}))
