@@ -1,0 +1,110 @@
+{% extends "carga_alumnos/base.html" %}
+
+{% block title %}Inicio - Alta de Alumnos — ISFT N° 188{% endblock %}
+
+{% block modulo_content %}
+<div class="space-y-6">
+
+    <!-- Tarjeta Principal / Hero -->
+    <div class="glass-card rounded-3xl p-8 sm:p-12 text-center border theme-border shadow-2xl relative overflow-hidden space-y-6">
+        <!-- Decoración de Línea Superior -->
+        <div class="absolute top-0 left-0 right-0 h-1.5 bg-gradient-to-r from-indigo-600 via-purple-600 to-emerald-500"></div>
+
+        <!-- Icono Destacado -->
+        <div class="w-20 h-20 mx-auto rounded-3xl bg-gradient-to-tr from-indigo-600 to-purple-600 flex items-center justify-center text-white shadow-xl shadow-indigo-600/30 animate-in zoom-in duration-300">
+            <span class="material-symbols-outlined text-4xl">person_add_alt_1</span>
+        </div>
+
+        <!-- Textos del Hero -->
+        <div class="space-y-2 max-w-2xl mx-auto">
+            <h1 class="text-2xl sm:text-4xl font-black tracking-tight theme-text-main">
+                Alta y Registro de Alumnos
+            </h1>
+            <p class="text-xs sm:text-sm theme-text-muted leading-relaxed">
+                Módulo modular y autónomo para el registro seguro de estudiantes en el Sistema de Gestión Académica del ISFT N° 188. Cuenta con verificación interactiva en dos pasos y previsualización tipo hoja de cálculo antes de persistir la información.
+            </p>
+        </div>
+
+        <!-- Botón de Acción Principal -->
+        <div class="pt-2 flex flex-col sm:flex-row items-center justify-center gap-4">
+            <a 
+                href="{% url 'carga_alumnos:paso1_carga' %}" 
+                id="btnIrACargaAlumnos"
+                class="inline-flex items-center gap-3 bg-gradient-to-r from-indigo-600 to-indigo-700 hover:from-indigo-500 hover:to-indigo-600 text-white font-black px-8 py-4 rounded-2xl shadow-xl shadow-indigo-600/30 transition-all text-sm sm:text-base hover:scale-[1.02] cursor-pointer"
+            >
+                <span class="material-symbols-outlined text-xl">add_circle</span>
+                <span>Iniciar Carga de Alumno</span>
+                <span class="material-symbols-outlined text-xl">arrow_forward</span>
+            </a>
+
+            {% if hay_borrador_pendiente %}
+            <a 
+                href="{% url 'carga_alumnos:paso2_confirmacion' %}" 
+                class="inline-flex items-center gap-2 px-5 py-4 rounded-2xl bg-amber-500/10 hover:bg-amber-500/20 border border-amber-500/30 text-xs sm:text-sm font-bold text-amber-400 transition-all"
+            >
+                <span class="material-symbols-outlined text-lg">pending_actions</span>
+                <span>Continuar borrador pendiente</span>
+            </a>
+            {% endif %}
+        </div>
+
+        <!-- Indicador de Alumnos Registrados -->
+        <div class="pt-2 border-t theme-border flex items-center justify-center gap-6 text-xs theme-text-muted">
+            <div class="flex items-center gap-2">
+                <span class="material-symbols-outlined text-base text-indigo-500">groups</span>
+                <span>Alumnos cargados en este módulo: <strong class="theme-text-main font-bold">{{ total_alumnos }}</strong></span>
+            </div>
+            <div class="flex items-center gap-2">
+                <span class="material-symbols-outlined text-base text-emerald-500">verified</span>
+                <span>Integridad verificada</span>
+            </div>
+        </div>
+    </div>
+
+    <!-- Grilla de Explicación de los Pasos -->
+    <div class="grid grid-cols-1 md:grid-cols-3 gap-5">
+        <!-- Paso 1 -->
+        <div class="glass-card rounded-3xl p-6 border theme-border shadow-xl space-y-3 relative">
+            <div class="flex items-center justify-between">
+                <span class="text-xs font-black text-indigo-500 tracking-wider">PASO 01</span>
+                <div class="w-10 h-10 rounded-2xl bg-indigo-500/10 text-indigo-500 flex items-center justify-center">
+                    <span class="material-symbols-outlined text-xl">edit_note</span>
+                </div>
+            </div>
+            <h3 class="text-base font-bold theme-text-main">Carga Secuencial</h3>
+            <p class="text-xs theme-text-muted leading-relaxed">
+                Ingreso ordenado de datos personales, contacto y domicilio. Validación estricta en tiempo real de campos requeridos, formato normalizado de DNI y selectores normalizados.
+            </p>
+        </div>
+
+        <!-- Paso 2 -->
+        <div class="glass-card rounded-3xl p-6 border theme-border shadow-xl space-y-3 relative">
+            <div class="flex items-center justify-between">
+                <span class="text-xs font-black text-emerald-500 tracking-wider">PASO 02</span>
+                <div class="w-10 h-10 rounded-2xl bg-emerald-500/10 text-emerald-500 flex items-center justify-center">
+                    <span class="material-symbols-outlined text-xl">table_view</span>
+                </div>
+            </div>
+            <h3 class="text-base font-bold theme-text-main">Previsualización Excel</h3>
+            <p class="text-xs theme-text-muted leading-relaxed">
+                Vista previa moderna tipo planilla y ficha interactiva para inspeccionar cada detalle antes de guardar. Permite corregir o confirmar con total claridad.
+            </p>
+        </div>
+
+        <!-- Seguridad e Integración -->
+        <div class="glass-card rounded-3xl p-6 border theme-border shadow-xl space-y-3 relative">
+            <div class="flex items-center justify-between">
+                <span class="text-xs font-black text-purple-500 tracking-wider">PASO FINAL</span>
+                <div class="w-10 h-10 rounded-2xl bg-purple-500/10 text-purple-500 flex items-center justify-center">
+                    <span class="material-symbols-outlined text-xl">cloud_done</span>
+                </div>
+            </div>
+            <h3 class="text-base font-bold theme-text-main">Persistencia Segura</h3>
+            <p class="text-xs theme-text-muted leading-relaxed">
+                Los datos se mantienen seguros en sesión hasta la confirmación. Al enviar, se persisten con integridad transaccional y quedan sincronizados con el Buscador SGA.
+            </p>
+        </div>
+    </div>
+
+</div>
+{% endblock %}

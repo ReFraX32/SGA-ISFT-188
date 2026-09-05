@@ -15,6 +15,7 @@ urlpatterns = [
     path('favicon.png', favicon_view, name='favicon_png'),
     path('', include('login.urls')),
     path('', include('gestion.urls')),
+    path('carga-alumnos/', include('carga_alumnos.urls')),
 ]
 
 # Habilitar ruta de administracion solo si ENABLE_ADMIN es activado explicitamente en variables de entorno
