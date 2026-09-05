@@ -1,0 +1,189 @@
+{% extends 'gestion/base.html' %}
+{% load static %}
+
+{% block title %}Alta de Alumnos — ISFT N° 188{% endblock %}
+
+{% block extra_head %}
+    <style>
+        /* Corrección para que el campo de fecha de nacimiento se adapte perfectamente al modo oscuro y claro */
+        html.dark input[type="date"] {
+            color-scheme: dark !important;
+            background-color: var(--input-bg) !important;
+            color: var(--input-text) !important;
+            border-color: var(--input-border) !important;
+        }
+
+        html.light input[type="date"] {
+            color-scheme: light !important;
+            background-color: var(--input-bg) !important;
+            color: var(--input-text) !important;
+            border-color: var(--input-border) !important;
+        }
+
+        input[type="date"] {
+            color: var(--input-text) !important;
+            background-color: var(--input-bg) !important;
+            border: 1px solid var(--input-border) !important;
+            transition: all 0.2s ease;
+        }
+
+        html.dark input[type="date"]::-webkit-calendar-picker-indicator {
+            filter: invert(0.9);
+            cursor: pointer;
+            opacity: 0.8;
+        }
+
+        html.dark input[type="date"]::-webkit-calendar-picker-indicator:hover {
+            opacity: 1;
+        }
+
+        .badge-pill {
+            display: inline-flex;
+            align-items: center;
+            gap: 0.35rem;
+            padding: 0.25rem 0.65rem;
+            border-radius: 9999px;
+            font-size: 0.75rem;
+            font-weight: 700;
+        }
+
+        .step-bubble {
+            width: 28px;
+            height: 28px;
+            border-radius: 9999px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-size: 0.75rem;
+            font-weight: 800;
+            transition: all 0.2s ease;
+        }
+
+        .step-bubble.active {
+            background: #4f46e5;
+            color: #ffffff;
+            box-shadow: 0 0 0 4px rgba(79, 70, 229, 0.25);
+        }
+
+        .step-bubble.completed {
+            background: #059669;
+            color: #ffffff;
+        }
+
+        .step-bubble.pending {
+            background: rgba(148, 163, 184, 0.2);
+            color: var(--text-muted);
+        }
+
+        /* Estilos armónicos para carteles y mensajes de error en color rojo integrado a la web */
+        .alert-error-card {
+            background: linear-gradient(135deg, rgba(244, 63, 94, 0.12) 0%, rgba(190, 18, 60, 0.05) 100%);
+            border: 1.5px solid rgba(244, 63, 94, 0.4);
+            box-shadow: 0 10px 30px -5px rgba(244, 63, 94, 0.18);
+        }
+
+        html.light .alert-error-card {
+            background: linear-gradient(135deg, rgba(254, 242, 242, 0.95) 0%, rgba(255, 228, 230, 0.85) 100%);
+            border: 1.5px solid rgba(244, 63, 94, 0.45);
+            box-shadow: 0 8px 20px -3px rgba(244, 63, 94, 0.12);
+        }
+
+        .error-tag-pill {
+            background: rgba(244, 63, 94, 0.15);
+            border: 1px solid rgba(244, 63, 94, 0.35);
+            color: #fb7185;
+        }
+
+        html.light .error-tag-pill {
+            background: rgba(254, 226, 226, 0.9);
+            border: 1px solid rgba(244, 63, 94, 0.4);
+            color: #e11d48;
+        }
+    </style>
+    {% block extra_css %}{% endblock %}
+{% endblock %}
+
+{% block content %}
+<div class="space-y-6 max-w-6xl mx-auto">
+
+    <!-- Sub-Barra de Navegación Modular y Directa -->
+    <div class="glass-card p-4 md:p-5 rounded-3xl flex flex-wrap items-center justify-between gap-4 shadow-xl border theme-border">
+        <!-- Izquierda: Retorno al Buscador e Identidad del Módulo -->
+        <div class="flex items-center gap-3">
+            <a 
+                href="{% url 'gestion:buscador' %}" 
+                class="flex items-center gap-1.5 px-3.5 py-2 rounded-xl bg-indigo-500/10 hover:bg-indigo-500/20 border border-indigo-500/30 text-xs font-bold text-indigo-500 hover:text-indigo-400 transition-all cursor-pointer shadow-sm"
+                title="Volver a la consulta de estudiantes del SGA"
+            >
+                <span class="material-symbols-outlined text-sm">arrow_back</span>
+                <span>Buscador SGA</span>
+            </a>
+
+            <div class="h-6 w-px bg-white/10 hidden sm:block"></div>
+
+            <div class="flex items-center gap-2.5">
+                <div class="w-9 h-9 rounded-xl bg-gradient-to-tr from-indigo-600 to-indigo-700 flex items-center justify-center text-white shadow-md shadow-indigo-600/30">
+                    <span class="material-symbols-outlined text-lg">person_add</span>
+                </div>
+                <div>
+                    <span class="text-[10px] font-bold uppercase tracking-widest text-indigo-500 block">SGA ISFT N° 188</span>
+                    <h2 class="text-sm md:text-base font-black leading-tight theme-text-main">Carga de Alumnos</h2>
+                </div>
+            </div>
+        </div>
+
+        <!-- Derecha: Flujo Directo de Pasos -->
+        <div class="flex items-center gap-2 text-xs">
+            <a 
+                href="{% url 'carga_alumnos:paso1_carga' %}" 
+                class="flex items-center gap-1.5 px-3.5 py-2 rounded-xl font-semibold transition-all {% if request.resolver_match.url_name == 'paso1_carga' %}bg-indigo-500/15 text-indigo-500 border border-indigo-500/30 font-bold{% else %}theme-text-muted hover:theme-text-main hover:bg-white/5{% endif %}"
+            >
+                <span class="material-symbols-outlined text-sm">edit_note</span>
+                <span>1. Formulario de Carga</span>
+            </a>
+
+            <a 
+                href="{% url 'carga_alumnos:paso2_confirmacion' %}" 
+                class="flex items-center gap-1.5 px-3.5 py-2 rounded-xl font-semibold transition-all {% if request.resolver_match.url_name == 'paso2_confirmacion' %}bg-indigo-500/15 text-indigo-500 border border-indigo-500/30 font-bold{% else %}theme-text-muted hover:theme-text-main hover:bg-white/5{% endif %}"
+            >
+                <span class="material-symbols-outlined text-sm">grid_view</span>
+                <span>2. Matriz de Datos</span>
+            </a>
+        </div>
+    </div>
+
+    <!-- Mensajes Flash de Django -->
+    {% if messages %}
+        <div class="space-y-2.5">
+            {% for message in messages %}
+                <div class="glass-card rounded-2xl p-4 border flex items-center justify-between gap-3 shadow-lg 
+                    {% if message.tags == 'success' %}border-emerald-500/30 bg-emerald-500/10 text-emerald-400
+                    {% elif message.tags == 'error' %}alert-error-card text-rose-300
+                    {% elif message.tags == 'warning' %}border-amber-500/30 bg-amber-500/10 text-amber-400
+                    {% else %}border-indigo-500/30 bg-indigo-500/10 text-indigo-400{% endif %} animate-in fade-in duration-200">
+                    <div class="flex items-center gap-3 text-xs sm:text-sm font-semibold">
+                        <span class="material-symbols-outlined text-xl shrink-0 {% if message.tags == 'error' %}text-rose-400{% endif %}">
+                            {% if message.tags == 'success' %}check_circle
+                            {% elif message.tags == 'error' %}error
+                            {% elif message.tags == 'warning' %}warning
+                            {% else %}info{% endif %}
+                        </span>
+                        <span>{{ message }}</span>
+                    </div>
+                    <button type="button" class="text-xs opacity-70 hover:opacity-100 cursor-pointer p-1" onclick="this.closest('.glass-card').remove()" title="Cerrar notificación">
+                        <span class="material-symbols-outlined text-sm">close</span>
+                    </button>
+                </div>
+            {% endfor %}
+        </div>
+    {% endif %}
+
+    <!-- Contenido Propio de la Vista -->
+    {% block modulo_content %}{% endblock %}
+
+</div>
+{% endblock %}
+
+{% block extra_scripts %}
+    {% block extra_js %}{% endblock %}
+{% endblock %}

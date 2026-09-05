@@ -140,11 +140,24 @@
             background: var(--dropdown-hover) !important;
         }
 
-        input[type="text"], input[type="search"], input[type="password"], input[type="email"], select {
+        input[type="text"], input[type="search"], input[type="password"], input[type="email"], input[type="date"], select {
             color: var(--input-text) !important;
             background-color: var(--input-bg) !important;
             border: 1px solid var(--input-border) !important;
             transition: all 0.2s ease;
+        }
+
+        html.dark input[type="date"] {
+            color-scheme: dark !important;
+        }
+
+        html.light input[type="date"] {
+            color-scheme: light !important;
+        }
+
+        html.dark input[type="date"]::-webkit-calendar-picker-indicator {
+            filter: invert(0.9);
+            cursor: pointer;
         }
 
         input[type="text"]::placeholder,
@@ -265,6 +278,16 @@
             </button>
 
             {% if request.user.is_authenticated %}
+            <!-- Acceso a Carga de Alumnos -->
+            <a 
+                href="{% url 'carga_alumnos:index' %}"
+                class="flex items-center gap-1.5 px-3 py-2 rounded-xl bg-indigo-500/10 hover:bg-indigo-500/20 border border-indigo-500/30 text-xs font-bold text-indigo-500 hover:text-indigo-400 transition-all cursor-pointer shadow-sm"
+                title="Módulo de Alta y Carga de Alumnos"
+            >
+                <span class="material-symbols-outlined text-base">person_add</span>
+                <span class="hidden md:inline">Alta Alumnos</span>
+            </a>
+
             <!-- Distintivo de Usuario Autenticado -->
             <div class="hidden md:flex items-center gap-2 px-3 py-1.5 rounded-xl bg-indigo-500/10 border border-indigo-500/20 text-xs font-semibold text-indigo-500">
                 <span class="material-symbols-outlined text-sm">account_circle</span>

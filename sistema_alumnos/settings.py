@@ -38,6 +38,7 @@ INSTALLED_APPS = [
     'django.contrib.staticfiles',
     'login',
     'gestion',
+    'carga_alumnos',
 ]
 
 LOGIN_URL = 'login:login'
