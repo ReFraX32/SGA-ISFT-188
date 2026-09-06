@@ -20,41 +20,63 @@
             <!-- Botones de Accion Global -->
             <div class="flex items-center gap-3 flex-wrap">
                 
-<<<<<<< HEAD
-                <!-- Alta Individual / Carga de Alumnos -->
+                <!-- 1. Buscar Docentes (Ubicado en la posición inicial donde antes estaba Alta de Alumnos) -->
                 <a 
-                    href="{% url 'carga_alumnos:index' %}"
-                    class="bg-gradient-to-r from-indigo-600 to-purple-600 hover:from-indigo-500 hover:to-purple-500 text-white font-bold py-2.5 px-4 rounded-xl shadow-lg shadow-indigo-600/30 transition-all flex items-center gap-2 text-xs cursor-pointer"
-                    title="Alta individual y guiada de alumnos con previsualización Excel"
-                >
-                    <span class="material-symbols-outlined text-sm">person_add</span>
-                    <span>Alta de Alumnos</span>
-                </a>
-
-=======
->>>>>>> b5ebfda (Agrego mis archivos nuevos)
-                <!-- Carga Masiva desde Excel -->
-                <button 
-                    type="button" 
-                    onclick="abrirModalImportar()"
-                    class="bg-gradient-to-r from-indigo-600 to-indigo-700 hover:from-indigo-500 hover:to-indigo-600 text-white font-bold py-2.5 px-4 rounded-xl shadow-lg shadow-indigo-600/30 transition-all flex items-center gap-2 text-xs cursor-pointer"
-                >
-                    <span class="material-symbols-outlined text-sm">upload_file</span>
-                    <span>Cargar Estudiantes (.xlsx)</span>
-                </button>
-
-<<<<<<< HEAD
-=======
-                <!-- Ir al módulo de Docentes -->
-                <a
                     href="{% url 'gestion:docentes' %}"
                     class="bg-gradient-to-r from-violet-600 to-violet-700 hover:from-violet-500 hover:to-violet-600 text-white font-bold py-2.5 px-4 rounded-xl shadow-lg shadow-violet-600/30 transition-all flex items-center gap-2 text-xs cursor-pointer"
+                    title="Módulo de Búsqueda y Consulta de Docentes"
                 >
                     <span class="material-symbols-outlined text-sm">school</span>
                     <span>Buscar Docentes</span>
                 </a>
 
->>>>>>> b5ebfda (Agrego mis archivos nuevos)
+                <!-- 2. Menú Desplegable: Cargar Alumnos (Permite elegir Alta de Alumnos o Carga mediante Excel) -->
+                <div class="relative inline-block text-left z-50" id="dropdownCargarAlumnosContainer">
+                    <button 
+                        type="button" 
+                        onclick="toggleDropdownCargarAlumnos()" 
+                        class="bg-gradient-to-r from-indigo-600 to-indigo-700 hover:from-indigo-500 hover:to-indigo-600 text-white font-bold py-2.5 px-4 rounded-xl shadow-lg shadow-indigo-600/30 transition-all flex items-center gap-2 text-xs cursor-pointer"
+                        title="Opciones de Carga e Ingreso de Alumnos"
+                    >
+                        <span class="material-symbols-outlined text-sm">group_add</span>
+                        <span>Cargar Alumnos</span>
+                        <span class="material-symbols-outlined text-xs">expand_more</span>
+                    </button>
+                    
+                    <div 
+                        id="dropdownCargarAlumnos" 
+                        class="hidden absolute left-0 mt-2 w-72 rounded-2xl shadow-2xl glass-dropdown z-50 p-2 space-y-1 backdrop-blur-xl animate-in fade-in duration-150 border theme-border"
+                    >
+                        <div class="px-3 py-2 text-[11px] font-bold theme-text-muted uppercase tracking-wider border-b theme-border">
+                            Modalidad de Carga
+                        </div>
+                        
+                        <!-- Opción A: Alta individual paso a paso -->
+                        <a 
+                            href="{% url 'carga_alumnos:index' %}" 
+                            class="flex items-start gap-2.5 px-3 py-2.5 rounded-xl text-xs font-semibold dropdown-item transition-colors"
+                        >
+                            <span class="material-symbols-outlined text-base text-indigo-500 shrink-0 mt-0.5">person_add</span>
+                            <div>
+                                <span class="font-bold block text-xs">Alta de Alumnos</span>
+                                <span class="text-[11px] theme-text-muted font-normal block">Formulario guiado paso a paso con validaciones</span>
+                            </div>
+                        </a>
+
+                        <!-- Opción B: Carga masiva mediante archivo Excel -->
+                        <button 
+                            type="button" 
+                            onclick="abrirModalImportar(); toggleDropdownCargarAlumnos();" 
+                            class="w-full text-left flex items-start gap-2.5 px-3 py-2.5 rounded-xl text-xs font-semibold dropdown-item transition-colors cursor-pointer"
+                        >
+                            <span class="material-symbols-outlined text-base text-emerald-500 shrink-0 mt-0.5">upload_file</span>
+                            <div>
+                                <span class="font-bold block text-xs">Carga mediante Excel (.xlsx)</span>
+                                <span class="text-[11px] theme-text-muted font-normal block">Importar nómina completa en lote</span>
+                            </div>
+                        </button>
+                    </div>
+                </div>
                 <!-- Menu Desplegable Libro Matriz -->
                 <div class="relative inline-block text-left z-50" id="dropdownLibroMatrizContainer">
                     <button 
@@ -611,14 +633,25 @@
 <script>
     function toggleDropdownMatriz() {
         const dd = document.getElementById('dropdownLibroMatriz');
-        dd.classList.toggle('hidden');
+        if (dd) dd.classList.toggle('hidden');
+    }
+
+    function toggleDropdownCargarAlumnos() {
+        const dd = document.getElementById('dropdownCargarAlumnos');
+        if (dd) dd.classList.toggle('hidden');
     }
 
     document.addEventListener('click', function(e) {
-        const container = document.getElementById('dropdownLibroMatrizContainer');
-        const dd = document.getElementById('dropdownLibroMatriz');
-        if (container && !container.contains(e.target) && dd) {
-            dd.classList.add('hidden');
+        const containerMatriz = document.getElementById('dropdownLibroMatrizContainer');
+        const ddMatriz = document.getElementById('dropdownLibroMatriz');
+        if (containerMatriz && !containerMatriz.contains(e.target) && ddMatriz) {
+            ddMatriz.classList.add('hidden');
+        }
+
+        const containerAlumnos = document.getElementById('dropdownCargarAlumnosContainer');
+        const ddAlumnos = document.getElementById('dropdownCargarAlumnos');
+        if (containerAlumnos && !containerAlumnos.contains(e.target) && ddAlumnos) {
+            ddAlumnos.classList.add('hidden');
         }
     });
 

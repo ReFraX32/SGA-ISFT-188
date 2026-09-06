@@ -375,3 +375,71 @@ class BuscadorAlumnosTestCase(TestCase):
         self.assertContains(response, "CONSTANCIA DE ESTADO ACADÉMICO")
         self.assertContains(response, "Abeldaño Aquino, Gonzalo Daniel")
         self.assertContains(response, "Identidad de Género")
+
+    def test_ui_botones_docentes_y_cargar_alumnos(self):
+        """Verifica que el botón de Buscar Docentes esté en primer lugar y Cargar Alumnos tenga su desplegable con ambas opciones."""
+        response = self.client.get(reverse('gestion:buscador'))
+        self.assertEqual(response.status_code, 200)
+        # Botón Buscar Docentes
+        self.assertContains(response, "Buscar Docentes")
+        self.assertContains(response, reverse('gestion:docentes'))
+        # Botón desplegable Cargar Alumnos
+        self.assertContains(response, "Cargar Alumnos")
+        self.assertContains(response, "dropdownCargarAlumnos")
+        # Opción 1: Alta de Alumnos
+        self.assertContains(response, "Alta de Alumnos")
+        self.assertContains(response, reverse('carga_alumnos:index'))
+        # Opción 2: Carga mediante Excel
+        self.assertContains(response, "Carga mediante Excel (.xlsx)")
+        self.assertContains(response, "abrirModalImportar()")
+
+    def test_modulo_docentes_busqueda_y_render(self):
+        """Verifica la vista del módulo de docentes y su buscador."""
+        p_doc = Persona.objects.create(
+            dni="20123456",
+            cuil="20201234562",
+            nombre="Esteban",
+            apellido="Quito",
+            localidad="General Rodríguez"
+        )
+        Docente.objects.create(persona=p_doc, titulo_mn="Ingeniero en Sistemas")
+
+        response = self.client.get(reverse('gestion:docentes'))
+        self.assertEqual(response.status_code, 200)
+        self.assertContains(response, "Buscador de Docentes")
+        self.assertContains(response, "Quito, Esteban")
+        self.assertContains(response, "Ingeniero en Sistemas")
+
+        # Búsqueda por DNI
+        res_busq = self.client.get(reverse('gestion:docentes'), {'q': '20123456'})
+        self.assertEqual(res_busq.status_code, 200)
+        self.assertContains(res_busq, "Quito, Esteban")
+
+        # Búsqueda sin resultados
+        res_vacio = self.client.get(reverse('gestion:docentes'), {'q': 'Inexistente9999'})
+        self.assertEqual(res_vacio.status_code, 200)
+        self.assertContains(res_vacio, "0 resultados")
+
+    def test_modulo_docentes_importar_excel(self):
+        """Verifica la importación de docentes desde un archivo Excel."""
+        wb = openpyxl.Workbook()
+        ws = wb.active
+        ws.title = "Docentes"
+        ws.append(["DNI", "Apellido", "Nombre", "Título / Matrícula", "CUIL", "Teléfono", "Mail"])
+        ws.append(["33444555", "Pérez", "Juan Carlos", "Licenciado en Seguridad e Higiene", "20334445558", "1133221100", "juan.perez@isft188.edu.ar"])
+
+        buf = io.BytesIO()
+        wb.save(buf)
+        buf.seek(0)
+
+        uploaded_file = SimpleUploadedFile("test_docentes.xlsx", buf.getvalue(), content_type="application/vnd.openxmlformats-officedocument.spreadsheetml.sheet")
+        response = self.client.post(reverse('gestion:importar_docentes'), {'archivo_excel': uploaded_file})
+        self.assertEqual(response.status_code, 200)
+        data = response.json()
+        self.assertTrue(data['success'])
+        self.assertEqual(data['creados'], 1)
+
+        doc = Docente.objects.get(persona__dni="33444555")
+        self.assertEqual(doc.persona.apellido, "Pérez")
+        self.assertEqual(doc.persona.nombre, "Juan Carlos")
+        self.assertEqual(doc.titulo_mn, "Licenciado en Seguridad e Higiene")

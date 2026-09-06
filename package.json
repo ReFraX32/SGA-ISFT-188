@@ -1,0 +1,13 @@
+{
+  "name": "sistema-gestion-alumnos-188",
+  "version": "1.0.0",
+  "private": true,
+  "description": "Sistema de Gesti\u00f3n Acad\u00e9mica - ISFT N 188",
+  "scripts": {
+    "build:css": "tailwindcss -i gestion/static/css/tailwind-input.css -o gestion/static/css/tailwind.min.css --minify",
+    "watch:css": "tailwindcss -i gestion/static/css/tailwind-input.css -o gestion/static/css/tailwind.min.css --watch"
+  },
+  "devDependencies": {
+    "tailwindcss": "^3.4.17"
+  }
+}
