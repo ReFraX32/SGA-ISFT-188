@@ -1,11 +1,19 @@
 import re
 import datetime
 import io
+<<<<<<< HEAD
 import openpyxl
 from openpyxl.styles import Font, PatternFill, Alignment, Border, Side
 from openpyxl.utils import get_column_letter
 from openpyxl.worksheet.datavalidation import DataValidation
 from gestion.models import Persona, Alumno, Carrera, Materia, PlanEstudio, Comision, Cursada
+=======
+import openpyxl # Libreria para manipular archivos Excel (.xlsx)
+from openpyxl.styles import Font, PatternFill, Alignment, Border, Side
+from openpyxl.utils import get_column_letter
+from openpyxl.worksheet.datavalidation import DataValidation
+from gestion.models import Persona, Docente, Alumno, Carrera, Materia, PlanEstudio, Comision, Cursada
+>>>>>>> b5ebfda (Agrego mis archivos nuevos)
 
 def normalizar_dni(dni_raw):
     """Limpia puntos, guiones y espacios de un DNI."""
