@@ -6,6 +6,9 @@ recursos/
 
 # Base de Datos Local SQLite
 *.sqlite3
+*.sqlite3-journal
+*.sqlite3-wal
+*.sqlite3-shm
 *.db
 
 # Entornos Virtuales y Cache Python
@@ -20,6 +23,9 @@ ENV/
 # Archivos Estáticos Recolectados en Local
 staticfiles/
 media/
+
+# Dependencias Frontend
+node_modules/
 
 # Archivos de IDE y Editores
 .vscode/
