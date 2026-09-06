@@ -1,0 +1,286 @@
+{% extends 'gestion/base.html' %}
+
+{% block title %}Buscador de Docentes - ISFT N° 188{% endblock %}
+
+{% block content %}
+<div class="space-y-6">
+    <div class="glass-card p-6 md:p-8 rounded-3xl shadow-2xl">
+        <div class="flex flex-col md:flex-row md:items-center justify-between gap-4">
+            <div>
+                <h1 class="text-2xl md:text-3xl font-black tracking-tight theme-text-main">Buscador de Docentes</h1>
+                <p class="text-xs md:text-sm theme-text-muted mt-1">Consultá docentes por nombre, apellido, DNI, CUIL, localidad o título/matrícula.</p>
+            </div>
+            <div class="flex items-center gap-2">
+                <button onclick="abrirModalImportarDocentes()" class="inline-flex items-center justify-center gap-2 px-4 py-2.5 rounded-xl bg-gradient-to-r from-violet-600 to-violet-700 hover:from-violet-500 hover:to-violet-600 text-white font-bold text-xs shadow-lg shadow-violet-600/30 transition-all cursor-pointer">
+                    <span class="material-symbols-outlined text-sm">upload_file</span>
+                    Cargar desde Excel
+                </button>
+                <a href="{% url 'gestion:buscador' %}" class="inline-flex items-center justify-center gap-2 px-4 py-2.5 rounded-xl border theme-border theme-text-main font-bold text-xs hover:bg-indigo-500/10 transition-all">
+                    <span class="material-symbols-outlined text-sm">arrow_back</span>
+                    Volver a estudiantes
+                </a>
+            </div>
+        </div>
+    </div>
+
+    <div class="glass-card p-6 rounded-2xl shadow-xl">
+        <form method="GET" action="{% url 'gestion:docentes' %}" class="flex flex-col md:flex-row gap-3">
+            <div class="relative flex-1">
+                <span class="material-symbols-outlined absolute left-3 top-1/2 -translate-y-1/2 theme-text-muted">search</span>
+                <input
+                    type="search"
+                    name="q"
+                    value="{{ query }}"
+                    placeholder="Buscar por nombre, apellido, DNI, CUIL o título..."
+                    class="w-full rounded-xl py-3 pl-11 pr-4 text-sm"
+                    autocomplete="off"
+                >
+            </div>
+            <button type="submit" class="bg-gradient-to-r from-violet-600 to-violet-700 hover:from-violet-500 hover:to-violet-600 text-white font-bold py-3 px-6 rounded-xl shadow-lg shadow-violet-600/30 transition-all flex items-center justify-center gap-2 text-sm">
+                <span class="material-symbols-outlined text-sm">search</span>
+                Buscar
+            </button>
+            {% if query %}
+            <a href="{% url 'gestion:docentes' %}" class="py-3 px-5 rounded-xl border theme-border theme-text-main font-bold text-sm text-center hover:bg-slate-500/10 transition-all">Limpiar</a>
+            {% endif %}
+        </form>
+    </div>
+
+    <div class="glass-card rounded-2xl shadow-xl overflow-hidden">
+        <div class="p-5 border-b theme-border flex items-center justify-between gap-3">
+            <div>
+                <h2 class="font-black text-lg theme-text-main">Docentes encontrados</h2>
+                <p class="text-xs theme-text-muted mt-1">{{ total_resultados }} resultado{{ total_resultados|pluralize }}.</p>
+            </div>
+            <span class="material-symbols-outlined text-violet-500 text-2xl">school</span>
+        </div>
+
+        {% if docentes %}
+        <div class="overflow-x-auto">
+            <table class="w-full text-sm">
+                <thead class="theme-table-header">
+                    <tr>
+                        <th class="text-left px-5 py-4 font-bold">Apellido y nombre</th>
+                        <th class="text-left px-5 py-4 font-bold">DNI</th>
+                        <th class="text-left px-5 py-4 font-bold">CUIL</th>
+                        <th class="text-left px-5 py-4 font-bold">Título / Matrícula</th>
+                        <th class="text-left px-5 py-4 font-bold">Localidad</th>
+                    </tr>
+                </thead>
+                <tbody class="theme-table-divide divide-y">
+                    {% for docente in docentes %}
+                    <tr class="theme-table-row">
+                        <td class="px-5 py-4 theme-text-main font-semibold">
+                            {{ docente.persona.apellido }}, {{ docente.persona.nombre }}
+                        </td>
+                        <td class="px-5 py-4 theme-text-muted">{{ docente.persona.dni }}</td>
+                        <td class="px-5 py-4 theme-text-muted">{{ docente.persona.cuil|default:'-' }}</td>
+                        <td class="px-5 py-4 theme-text-muted">{{ docente.titulo_mn|default:'Sin registrar' }}</td>
+                        <td class="px-5 py-4 theme-text-muted">{{ docente.persona.localidad|default:'Sin registrar' }}</td>
+                    </tr>
+                    {% endfor %}
+                </tbody>
+            </table>
+        </div>
+        {% else %}
+        <div class="p-12 text-center">
+            <span class="material-symbols-outlined text-5xl theme-text-muted mb-3">person_search</span>
+            <h3 class="font-black text-lg theme-text-main">No se encontraron docentes</h3>
+            <p class="text-sm theme-text-muted mt-1">Probá con otro nombre, apellido, DNI, CUIL o título.</p>
+        </div>
+        {% endif %}
+
+        {% if page_obj.has_other_pages %}
+        <div class="p-5 border-t theme-border flex items-center justify-between gap-3">
+            <span class="text-xs theme-text-muted">Página {{ page_obj.number }} de {{ page_obj.paginator.num_pages }}</span>
+            <div class="flex gap-2">
+                {% if page_obj.has_previous %}
+                <a href="?q={{ query|urlencode }}&page={{ page_obj.previous_page_number }}" class="px-3 py-2 rounded-lg border theme-border theme-text-main text-xs font-bold">Anterior</a>
+                {% endif %}
+                {% if page_obj.has_next %}
+                <a href="?q={{ query|urlencode }}&page={{ page_obj.next_page_number }}" class="px-3 py-2 rounded-lg border theme-border theme-text-main text-xs font-bold">Siguiente</a>
+                {% endif %}
+            </div>
+        </div>
+        {% endif %}
+    </div>
+</div>
+
+<!-- Modal Importar Docentes desde Excel -->
+<div id="modalImportarDocentes" class="fixed inset-0 z-[9999] hidden flex items-center justify-center p-4 bg-black/75 backdrop-blur-md">
+    <div class="glass-modal w-full max-w-lg rounded-3xl p-6 md:p-8 space-y-5 shadow-2xl border theme-border animate-in zoom-in-95 duration-200">
+        <div class="flex items-center justify-between gap-3">
+            <div class="flex items-center gap-3">
+                <div class="w-11 h-11 rounded-2xl bg-violet-600/15 flex items-center justify-center text-violet-500">
+                    <span class="material-symbols-outlined">upload_file</span>
+                </div>
+                <div>
+                    <h3 class="text-lg font-black theme-text-main leading-tight">Cargar Docentes desde Excel</h3>
+                    <p class="text-xs theme-text-muted">Importá o actualizá la nómina de docentes del instituto.</p>
+                </div>
+            </div>
+            <button type="button" onclick="cerrarModalImportarDocentes()" class="theme-text-muted hover:text-violet-500 p-2 rounded-lg hover:bg-violet-500/10 transition-colors cursor-pointer">
+                <span class="material-symbols-outlined">close</span>
+            </button>
+        </div>
+
+        <form id="formImportarExcelDocentes" action="{% url 'gestion:importar_docentes' %}" onsubmit="enviarExcelDocentes(event)" class="space-y-4">
+            {% csrf_token %}
+
+            <div class="space-y-2">
+                <label class="block text-xs font-bold uppercase tracking-wider theme-text-muted">
+                    Seleccionar Archivo Excel (.xlsx / .xls)
+                </label>
+                <div class="border-2 border-dashed rounded-2xl p-6 text-center cursor-pointer transition-all hover:border-violet-500" style="border-color: var(--glass-border);" onclick="document.getElementById('inputArchivoExcelDocentes').click()">
+                    <input
+                        type="file"
+                        name="archivo_excel"
+                        id="inputArchivoExcelDocentes"
+                        accept=".xlsx, .xls"
+                        class="hidden"
+                        onchange="mostrarArchivoSeleccionadoDocentes(this)"
+                    >
+                    <span class="material-symbols-outlined text-4xl text-violet-500 mb-1">cloud_upload</span>
+                    <p id="labelArchivoNombreDocentes" class="text-xs font-bold theme-text-main">
+                        Hacé clic acá o arrastrá tu archivo Excel
+                    </p>
+                    <p class="text-[11px] theme-text-muted mt-0.5">Columnas reconocidas: DNI, Apellido, Nombre, Título/Matrícula, CUIL, Fecha Nacimiento, Género, Nacionalidad, Localidad, Domicilio, Teléfono, Mail</p>
+                </div>
+            </div>
+
+            <div id="panelResultadoImportacionDocentes" class="hidden rounded-2xl p-4 space-y-3 text-xs border" style="background: var(--card-inner-bg); border-color: var(--card-inner-border);">
+                <!-- Contenido inyectado dinámicamente -->
+            </div>
+
+            <div class="flex items-center justify-end gap-3 pt-2">
+                <button
+                    type="button"
+                    onclick="cerrarModalImportarDocentes()"
+                    class="bg-slate-500/10 hover:bg-slate-500/20 theme-text-main font-bold py-2.5 px-4 rounded-xl text-xs transition-colors cursor-pointer"
+                >
+                    Cancelar
+                </button>
+                <button
+                    type="submit"
+                    id="btnSubirExcelDocentes"
+                    class="bg-gradient-to-r from-violet-600 to-violet-700 hover:from-violet-500 hover:to-violet-600 text-white font-bold py-2.5 px-6 rounded-xl shadow-lg shadow-violet-600/30 transition-all flex items-center gap-2 text-xs cursor-pointer"
+                >
+                    <span class="material-symbols-outlined text-sm">upload</span>
+                    <span>Procesar y Cargar</span>
+                </button>
+            </div>
+        </form>
+    </div>
+</div>
+
+<script>
+    function abrirModalImportarDocentes() {
+        const modal = document.getElementById('modalImportarDocentes');
+        const panel = document.getElementById('panelResultadoImportacionDocentes');
+        const label = document.getElementById('labelArchivoNombreDocentes');
+        const input = document.getElementById('inputArchivoExcelDocentes');
+
+        input.value = '';
+        label.innerText = 'Hacé clic acá o arrastrá tu archivo Excel';
+        panel.classList.add('hidden');
+        panel.innerHTML = '';
+        modal.classList.remove('hidden');
+    }
+
+    function cerrarModalImportarDocentes() {
+        document.getElementById('modalImportarDocentes').classList.add('hidden');
+    }
+
+    function mostrarArchivoSeleccionadoDocentes(input) {
+        const label = document.getElementById('labelArchivoNombreDocentes');
+        if (input.files && input.files[0]) {
+            label.innerText = '📄 ' + input.files[0].name + ' (' + (input.files[0].size / 1024).toFixed(1) + ' KB)';
+        } else {
+            label.innerText = 'Hacé clic acá o arrastrá tu archivo Excel';
+        }
+    }
+
+    function enviarExcelDocentes(e) {
+        e.preventDefault();
+        const form = document.getElementById('formImportarExcelDocentes');
+        const input = document.getElementById('inputArchivoExcelDocentes');
+        const btn = document.getElementById('btnSubirExcelDocentes');
+        const panel = document.getElementById('panelResultadoImportacionDocentes');
+
+        if (!input.files || !input.files[0]) {
+            panel.classList.remove('hidden');
+            panel.innerHTML = '<div class="text-rose-500 font-bold">⚠️ Tenés que seleccionar un archivo Excel (.xlsx o .xls) antes de procesar.</div>';
+            return;
+        }
+
+        const formData = new FormData(form);
+        btn.disabled = true;
+        btn.innerHTML = '<div class="w-4 h-4 border-2 border-white border-t-transparent rounded-full animate-spin"></div><span>Procesando...</span>';
+
+        const actionUrl = form.getAttribute('action');
+
+        fetch(actionUrl, {
+            method: 'POST',
+            body: formData,
+            headers: {
+                'X-CSRFToken': form.querySelector('[name=csrfmiddlewaretoken]').value
+            }
+        })
+        .then(res => res.json())
+        .then(data => {
+            btn.disabled = false;
+            btn.innerHTML = '<span class="material-symbols-outlined text-sm">upload</span><span>Procesar y Cargar</span>';
+            panel.classList.remove('hidden');
+
+            if (data.success) {
+                let reportHtml = '<div class="p-3 rounded-xl bg-emerald-500/15 border border-emerald-500/30 text-emerald-500 font-bold space-y-1">' +
+                    '<div class="flex items-center gap-1.5 text-sm">' +
+                    '<span class="material-symbols-outlined text-base">check_circle</span>' +
+                    '<span>¡Importación completada con éxito!</span>' +
+                    '</div>' +
+                    '<div class="text-xs font-normal theme-text-main">' +
+                    '• Docentes Nuevos Creados: <strong>' + data.creados + '</strong><br>' +
+                    '• Docentes Existentes Actualizados: <strong>' + data.actualizados + '</strong><br>' +
+                    '• Filas Procesadas: <strong>' + data.filas_procesadas + '</strong>' +
+                    '</div></div>';
+
+                if (data.advertencias && data.advertencias.length > 0) {
+                    reportHtml += '<div class="p-2.5 rounded-xl bg-amber-500/15 border border-amber-500/30 text-amber-500 text-[11px] space-y-1">' +
+                        '<strong class="block font-bold">Observaciones / Advertencias (' + data.advertencias.length + '):</strong>' +
+                        '<ul class="list-disc pl-4 space-y-0.5">' +
+                        data.advertencias.map(a => '<li>' + a + '</li>').join('') +
+                        '</ul></div>';
+                }
+
+                if (data.errores && data.errores.length > 0) {
+                    reportHtml += '<div class="p-2.5 rounded-xl bg-rose-500/15 border border-rose-500/30 text-rose-500 text-[11px] space-y-1">' +
+                        '<strong class="block font-bold">Filas con Errores Omitidas (' + data.errores.length + '):</strong>' +
+                        '<ul class="list-disc pl-4 space-y-0.5">' +
+                        data.errores.map(err => '<li>' + err + '</li>').join('') +
+                        '</ul></div>';
+                }
+
+                reportHtml += '<button type="button" onclick="window.location.reload()" class="w-full bg-emerald-600 hover:bg-emerald-500 text-white font-bold py-2 rounded-xl text-xs transition-colors cursor-pointer mt-2">' +
+                    'Recargá la página para ver a los nuevos docentes' +
+                    '</button>';
+
+                panel.innerHTML = reportHtml;
+            } else {
+                panel.innerHTML = '<div class="p-3 rounded-xl bg-rose-500/15 border border-rose-500/30 text-rose-500 font-bold space-y-1">' +
+                    '<div class="flex items-center gap-1.5">' +
+                    '<span class="material-symbols-outlined">error</span>' +
+                    '<span>Error al procesar el archivo:</span>' +
+                    '</div>' +
+                    '<p class="text-xs font-normal">' + (data.mensaje || 'Formato de archivo inválido.') + '</p>' +
+                    '</div>';
+            }
+        })
+        .catch(err => {
+            btn.disabled = false;
+            btn.innerHTML = '<span class="material-symbols-outlined text-sm">upload</span><span>Procesar y Cargar</span>';
+            panel.classList.remove('hidden');
+            panel.innerHTML = '<div class="text-rose-500 font-bold">Error de conexión: ' + err + '</div>';
+        });
+    }
+</script>
+{% endblock %}

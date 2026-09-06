@@ -5,7 +5,11 @@ from django.db.models import Q, Avg, Count
 from django.views.decorators.csrf import csrf_protect
 from django.contrib.auth.decorators import login_required
 from django.core.paginator import Paginator
+<<<<<<< HEAD
 from .models import Alumno, Persona, Cursada, Carrera, PlanEstudio, Evaluacion
+=======
+from .models import Alumno, Persona, Docente, Cursada, Carrera, PlanEstudio, Evaluacion
+>>>>>>> b5ebfda (Agrego mis archivos nuevos)
 from .libro_matriz import generar_libro_matriz_excel
 
 def formatear_dni(dni):
