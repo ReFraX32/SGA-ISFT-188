@@ -15,8 +15,8 @@ class LoginForm(AuthenticationForm):
                 'autofocus': True,
                 'autocomplete': 'username',
                 'class': (
-                    'w-full rounded-xl pl-11 pr-4 py-3 text-sm font-semibold '
-                    'shadow-inner focus:ring-2 focus:ring-indigo-500'
+                    'w-full rounded-xl pl-12 pr-4 py-3 text-sm font-semibold '
+                    'shadow-inner focus:ring-2 focus:ring-indigo-500 login-input'
                 ),
                 'placeholder': 'Ingresá tu usuario',
             }
@@ -29,8 +29,8 @@ class LoginForm(AuthenticationForm):
             attrs={
                 'autocomplete': 'current-password',
                 'class': (
-                    'w-full rounded-xl pl-11 pr-12 py-3 text-sm font-semibold '
-                    'shadow-inner focus:ring-2 focus:ring-indigo-500'
+                    'w-full rounded-xl pl-12 pr-12 py-3 text-sm font-semibold '
+                    'shadow-inner focus:ring-2 focus:ring-indigo-500 login-input-password'
                 ),
                 'placeholder': 'Ingresá tu contraseña',
             }
