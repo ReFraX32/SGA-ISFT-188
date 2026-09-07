@@ -1,0 +1,459 @@
+{% extends "gestion/base.html" %}
+
+{% block title %}Alta de Docentes — ISFT N° 188{% endblock %}
+
+{% block content %}
+<div class="space-y-6 max-w-4xl mx-auto">
+
+    <!-- Indicador Visual de Flujo de Pasos -->
+    <div class="glass-card p-4 rounded-2xl border theme-border flex items-center justify-center gap-3 sm:gap-6 shadow-md text-xs sm:text-sm">
+        <div class="flex items-center gap-2 text-indigo-500 font-bold">
+            <span class="step-bubble active">1</span>
+            <span>Paso 1: Carga de Datos</span>
+        </div>
+        <div class="w-10 sm:w-16 h-0.5 bg-indigo-500/30"></div>
+        <div class="flex items-center gap-2 theme-text-muted font-medium">
+            <span class="step-bubble pending">2</span>
+            <span>Paso 2: Matriz de Previsualización</span>
+        </div>
+    </div>
+
+    {% if hay_borrador_pendiente %}
+    <!-- Banner Informativo de Docentes ya Acumulados en la Matriz -->
+    <div class="glass-card p-4 rounded-2xl border border-indigo-500/30 bg-indigo-500/10 flex flex-col sm:flex-row items-center justify-between gap-3 shadow-md">
+        <div class="flex items-center gap-3">
+            <div class="w-8 h-8 rounded-xl bg-indigo-500/20 text-indigo-400 flex items-center justify-center shrink-0">
+                <span class="material-symbols-outlined text-lg">playlist_add_check</span>
+            </div>
+            <div>
+                <p class="text-xs sm:text-sm font-bold theme-text-main">
+                    Tenés <strong class="text-indigo-400">{{ total_en_matriz }}</strong> docente{% if total_en_matriz != 1 %}s{% endif %} cargado{% if total_en_matriz != 1 %}s{% endif %} en la matriz.
+                </p>
+                <p class="text-[11px] theme-text-muted">
+                    Completá este formulario para sumar otro docente o revisá la matriz completa.
+                </p>
+            </div>
+        </div>
+        <a 
+            href="{% url 'gestion:paso2_confirmacion_docentes' %}" 
+            class="shrink-0 inline-flex items-center gap-1.5 px-4 py-2 rounded-xl bg-indigo-600 hover:bg-indigo-500 text-white font-bold text-xs shadow-md shadow-indigo-600/25 transition-all"
+        >
+            <span class="material-symbols-outlined text-sm">table_chart</span>
+            <span>Ver Matriz ({{ total_en_matriz }}) →</span>
+        </a>
+    </div>
+    {% endif %}
+
+    <!-- Formulario Principal -->
+    <div class="glass-card rounded-3xl p-6 sm:p-10 border theme-border shadow-2xl space-y-6">
+        
+        <!-- Cabecera del Formulario -->
+        <div class="flex items-start justify-between gap-4 pb-5 border-b theme-border">
+            <div class="space-y-1">
+                <div class="flex items-center gap-2 text-xs font-bold uppercase tracking-wider text-indigo-500">
+                    <span class="material-symbols-outlined text-base">school</span>
+                    <span>Alta de Personal Docente</span>
+                </div>
+                <h2 class="text-xl sm:text-2xl font-black theme-text-main">
+                    Ingreso de Datos del Docente
+                </h2>
+                <p class="text-xs sm:text-sm theme-text-muted">
+                    Completá los campos para dar de alta al docente.
+                </p>
+            </div>
+        </div>
+
+        <!-- CARTEL COMPACTO Y CLARO DE ERRORES -->
+        {% if form.errors %}
+        <div class="alert-error-card rounded-2xl p-4 sm:p-5 space-y-3 animate-in fade-in duration-200" id="cartelErroresFormulario">
+            <div class="flex items-center gap-3">
+                <div class="w-9 h-9 rounded-xl bg-rose-500/20 border border-rose-500/30 text-rose-400 flex items-center justify-center shrink-0">
+                    <span class="material-symbols-outlined text-xl">error</span>
+                </div>
+                <div class="flex-1">
+                    <div class="flex items-center gap-2 flex-wrap">
+                        <h4 class="text-sm font-bold text-rose-400">
+                            Por favor, revisá los campos señalados en rojo
+                        </h4>
+                        <span class="error-tag-pill px-2.5 py-0.5 rounded-full text-[11px] font-bold">
+                            {{ form.errors|length }} a corregir
+                        </span>
+                    </div>
+                    <p class="text-xs text-rose-300/80 mt-0.5">
+                        Corregí los siguientes datos para poder continuar con la carga:
+                    </p>
+                </div>
+            </div>
+
+            <!-- Lista resumida y clara de errores -->
+            <div class="grid grid-cols-1 sm:grid-cols-2 gap-2 pt-2 border-t border-rose-500/20 text-xs">
+                {% for field in form %}
+                    {% if field.errors %}
+                    <div class="flex items-center gap-2 p-2 px-3 rounded-xl bg-rose-500/10 border border-rose-500/20">
+                        <span class="material-symbols-outlined text-sm text-rose-400 shrink-0">cancel</span>
+                        <div class="truncate text-rose-200">
+                            <strong class="text-rose-300 font-bold">{{ field.label }}:</strong>
+                            <span>{{ field.errors.0 }}</span>
+                        </div>
+                    </div>
+                    {% endif %}
+                {% endfor %}
+
+                {% for err in form.non_field_errors %}
+                <div class="flex items-center gap-2 p-2 px-3 rounded-xl bg-rose-500/10 border border-rose-500/20 sm:col-span-2">
+                    <span class="material-symbols-outlined text-sm text-rose-400 shrink-0">warning</span>
+                    <span class="text-rose-200 font-medium">{{ err }}</span>
+                </div>
+                {% endfor %}
+            </div>
+        </div>
+        {% endif %}
+
+        <form method="post" action="{% url 'gestion:alta_docente' %}" class="space-y-8" novalidate id="formAltaDocente">
+            {% csrf_token %}
+
+            <!-- Sección 1: Identificación y Datos Personales -->
+            <div class="space-y-4">
+                <div class="flex items-center gap-2 text-xs font-black uppercase tracking-wider text-indigo-500 border-b theme-border pb-2">
+                    <span class="material-symbols-outlined text-base">badge</span>
+                    <span>1. Identificación y Datos Personales</span>
+                </div>
+
+                <div class="grid grid-cols-1 sm:grid-cols-2 gap-4">
+                    <!-- DNI -->
+                    <div class="space-y-1.5">
+                        <label for="{{ form.dni.id_for_label }}" class="flex items-center justify-between text-xs font-bold uppercase tracking-wider {% if form.dni.errors %}text-rose-400{% else %}theme-text-muted{% endif %}">
+                            <span>DNI <span class="text-rose-500">*</span></span>
+                        </label>
+                        {{ form.dni }}
+                        {% if form.dni.errors %}
+                            <div class="flex items-center gap-1.5 px-2.5 py-1 rounded-lg bg-rose-500/15 border border-rose-500/30 text-rose-300 text-xs font-semibold mt-1">
+                                <span class="material-symbols-outlined text-xs text-rose-400 shrink-0">error</span>
+                                <span>{{ form.dni.errors.0 }}</span>
+                            </div>
+                        {% endif %}
+                    </div>
+
+                    <!-- CUIL -->
+                    <div class="space-y-1.5">
+                        <label for="{{ form.cuil.id_for_label }}" class="flex items-center justify-between text-xs font-bold uppercase tracking-wider {% if form.cuil.errors %}text-rose-400{% else %}theme-text-muted{% endif %}">
+                            <span>CUIL <span class="text-rose-500">*</span></span>
+                        </label>
+                        {{ form.cuil }}
+                        {% if form.cuil.errors %}
+                            <div class="flex items-center gap-1.5 px-2.5 py-1 rounded-lg bg-rose-500/15 border border-rose-500/30 text-rose-300 text-xs font-semibold mt-1">
+                                <span class="material-symbols-outlined text-xs text-rose-400 shrink-0">error</span>
+                                <span>{{ form.cuil.errors.0 }}</span>
+                            </div>
+                        {% endif %}
+                    </div>
+
+                    <!-- Apellido -->
+                    <div class="space-y-1.5">
+                        <label for="{{ form.apellido.id_for_label }}" class="flex items-center justify-between text-xs font-bold uppercase tracking-wider {% if form.apellido.errors %}text-rose-400{% else %}theme-text-muted{% endif %}">
+                            <span>Apellido(s) <span class="text-rose-500">*</span></span>
+                        </label>
+                        {{ form.apellido }}
+                        {% if form.apellido.errors %}
+                            <div class="flex items-center gap-1.5 px-2.5 py-1 rounded-lg bg-rose-500/15 border border-rose-500/30 text-rose-300 text-xs font-semibold mt-1">
+                                <span class="material-symbols-outlined text-xs text-rose-400 shrink-0">error</span>
+                                <span>{{ form.apellido.errors.0 }}</span>
+                            </div>
+                        {% endif %}
+                    </div>
+
+                    <!-- Nombre -->
+                    <div class="space-y-1.5">
+                        <label for="{{ form.nombre.id_for_label }}" class="flex items-center justify-between text-xs font-bold uppercase tracking-wider {% if form.nombre.errors %}text-rose-400{% else %}theme-text-muted{% endif %}">
+                            <span>Nombre(s) <span class="text-rose-500">*</span></span>
+                        </label>
+                        {{ form.nombre }}
+                        {% if form.nombre.errors %}
+                            <div class="flex items-center gap-1.5 px-2.5 py-1 rounded-lg bg-rose-500/15 border border-rose-500/30 text-rose-300 text-xs font-semibold mt-1">
+                                <span class="material-symbols-outlined text-xs text-rose-400 shrink-0">error</span>
+                                <span>{{ form.nombre.errors.0 }}</span>
+                            </div>
+                        {% endif %}
+                    </div>
+
+                    <!-- Fecha de Nacimiento -->
+                    <div class="space-y-1.5">
+                        <label for="{{ form.fecha_nacimiento.id_for_label }}" class="flex items-center justify-between text-xs font-bold uppercase tracking-wider {% if form.fecha_nacimiento.errors %}text-rose-400{% else %}theme-text-muted{% endif %}">
+                            <span>Fecha de Nacimiento</span>
+                        </label>
+                        {{ form.fecha_nacimiento }}
+                        {% if form.fecha_nacimiento.errors %}
+                            <div class="flex items-center gap-1.5 px-2.5 py-1 rounded-lg bg-rose-500/15 border border-rose-500/30 text-rose-300 text-xs font-semibold mt-1">
+                                <span class="material-symbols-outlined text-xs text-rose-400 shrink-0">error</span>
+                                <span>{{ form.fecha_nacimiento.errors.0 }}</span>
+                            </div>
+                        {% endif %}
+                    </div>
+
+                    <!-- Género -->
+                    <div class="space-y-1.5">
+                        <label for="{{ form.identidad.id_for_label }}" class="flex items-center justify-between text-xs font-bold uppercase tracking-wider theme-text-muted">
+                            <span>Identidad de Género</span>
+                        </label>
+                        {{ form.identidad }}
+                        {% if form.identidad.errors %}
+                            <div class="flex items-center gap-1.5 px-2.5 py-1 rounded-lg bg-rose-500/15 border border-rose-500/30 text-rose-300 text-xs font-semibold mt-1">
+                                <span class="material-symbols-outlined text-xs text-rose-400 shrink-0">error</span>
+                                <span>{{ form.identidad.errors.0 }}</span>
+                            </div>
+                        {% endif %}
+                    </div>
+                </div>
+            </div>
+
+            <!-- Sección 2: Canales de Contacto -->
+            <div class="space-y-4">
+                <div class="flex items-center gap-2 text-xs font-black uppercase tracking-wider text-indigo-500 border-b theme-border pb-2">
+                    <span class="material-symbols-outlined text-base">contact_phone</span>
+                    <span>2. Canales de Contacto</span>
+                </div>
+
+                <div class="grid grid-cols-1 sm:grid-cols-2 gap-4">
+                    <!-- Email -->
+                    <div class="space-y-1.5">
+                        <label for="{{ form.mail.id_for_label }}" class="flex items-center justify-between text-xs font-bold uppercase tracking-wider {% if form.mail.errors %}text-rose-400{% else %}theme-text-muted{% endif %}">
+                            <span>Correo Electrónico</span>
+                        </label>
+                        {{ form.mail }}
+                        {% if form.mail.errors %}
+                            <div class="flex items-center gap-1.5 px-2.5 py-1 rounded-lg bg-rose-500/15 border border-rose-500/30 text-rose-300 text-xs font-semibold mt-1">
+                                <span class="material-symbols-outlined text-xs text-rose-400 shrink-0">error</span>
+                                <span>{{ form.mail.errors.0 }}</span>
+                            </div>
+                        {% endif %}
+                    </div>
+
+                    <!-- Teléfono -->
+                    <div class="space-y-1.5">
+                        <label for="{{ form.telefono.id_for_label }}" class="flex items-center justify-between text-xs font-bold uppercase tracking-wider {% if form.telefono.errors %}text-rose-400{% else %}theme-text-muted{% endif %}">
+                            <span>Teléfono / Celular</span>
+                        </label>
+                        {{ form.telefono }}
+                        {% if form.telefono.errors %}
+                            <div class="flex items-center gap-1.5 px-2.5 py-1 rounded-lg bg-rose-500/15 border border-rose-500/30 text-rose-300 text-xs font-semibold mt-1">
+                                <span class="material-symbols-outlined text-xs text-rose-400 shrink-0">error</span>
+                                <span>{{ form.telefono.errors.0 }}</span>
+                            </div>
+                        {% endif %}
+                    </div>
+                </div>
+            </div>
+
+            <!-- Sección 3: Domicilio y Localización -->
+            <div class="space-y-4">
+                <div class="flex items-center gap-2 text-xs font-black uppercase tracking-wider text-indigo-500 border-b theme-border pb-2">
+                    <span class="material-symbols-outlined text-base">home_pin</span>
+                    <span>3. Domicilio y Localización</span>
+                </div>
+
+                <div class="grid grid-cols-1 sm:grid-cols-2 gap-4">
+                    <!-- Domicilio -->
+                    <div class="space-y-1.5 sm:col-span-2">
+                        <label for="{{ form.domicilio.id_for_label }}" class="flex items-center justify-between text-xs font-bold uppercase tracking-wider {% if form.domicilio.errors %}text-rose-400{% else %}theme-text-muted{% endif %}">
+                            <span>Dirección (Calle, Número, Piso/Depto)</span>
+                        </label>
+                        {{ form.domicilio }}
+                        {% if form.domicilio.errors %}
+                            <div class="flex items-center gap-1.5 px-2.5 py-1 rounded-lg bg-rose-500/15 border border-rose-500/30 text-rose-300 text-xs font-semibold mt-1">
+                                <span class="material-symbols-outlined text-xs text-rose-400 shrink-0">error</span>
+                                <span>{{ form.domicilio.errors.0 }}</span>
+                            </div>
+                        {% endif %}
+                    </div>
+
+                    <!-- Localidad -->
+                    <div class="space-y-1.5">
+                        <label for="{{ form.localidad.id_for_label }}" class="flex items-center justify-between text-xs font-bold uppercase tracking-wider {% if form.localidad.errors %}text-rose-400{% else %}theme-text-muted{% endif %}">
+                            <span>Localidad</span>
+                        </label>
+                        {{ form.localidad }}
+                        {% if form.localidad.errors %}
+                            <div class="flex items-center gap-1.5 px-2.5 py-1 rounded-lg bg-rose-500/15 border border-rose-500/30 text-rose-300 text-xs font-semibold mt-1">
+                                <span class="material-symbols-outlined text-xs text-rose-400 shrink-0">error</span>
+                                <span>{{ form.localidad.errors.0 }}</span>
+                            </div>
+                        {% endif %}
+                    </div>
+
+                    <!-- Nacionalidad con opción "Otra" y Selector con Autocompletado -->
+                    <div class="space-y-1.5">
+                        <label for="{{ form.nacionalidad.id_for_label }}" class="flex items-center justify-between text-xs font-bold uppercase tracking-wider {% if form.nacionalidad.errors %}text-rose-400{% else %}theme-text-muted{% endif %}">
+                            <span>Nacionalidad</span>
+                        </label>
+                        {{ form.nacionalidad }}
+                        {% if form.nacionalidad.errors %}
+                            <div class="flex items-center gap-1.5 px-2.5 py-1 rounded-lg bg-rose-500/15 border border-rose-500/30 text-rose-300 text-xs font-semibold mt-1">
+                                <span class="material-symbols-outlined text-xs text-rose-400 shrink-0">error</span>
+                                <span>{{ form.nacionalidad.errors.0 }}</span>
+                            </div>
+                        {% endif %}
+                    </div>
+
+                    <!-- Campo desplegable para "Otra" nacionalidad con autocompletado -->
+                    <div id="contenedorOtraNacionalidad" class="space-y-1.5 sm:col-span-2 mt-1 p-4 rounded-2xl bg-indigo-500/10 border border-indigo-500/30 transition-all {% if form.nacionalidad.value != 'Otra' and not form.nacionalidad_otra.value %}hidden{% endif %}">
+                        <div class="flex items-center justify-between">
+                            <label for="id_nacionalidad_otra" class="flex items-center gap-1.5 text-xs font-bold uppercase tracking-wider text-indigo-400">
+                                <span class="material-symbols-outlined text-sm">public</span>
+                                <span>Escribí la nacionalidad</span>
+                            </label>
+                        </div>
+                        
+                        <div class="relative">
+                            {{ form.nacionalidad_otra }}
+                            <span class="material-symbols-outlined absolute right-3 top-3.5 text-indigo-400 text-base pointer-events-none">search</span>
+                        </div>
+
+                        <!-- Lista mundial para autocompletar el selector de nacionalidad -->
+                        <datalist id="lista-nacionalidades-mundo">
+                            <option value="Alemana">
+                            <option value="Andorrana">
+                            <option value="Angoleña">
+                            <option value="Argelina">
+                            <option value="Armenia">
+                            <option value="Australiana">
+                            <option value="Austríaca">
+                            <option value="Belga">
+                            <option value="Boliviana">
+                            <option value="Brasileña">
+                            <option value="Británica">
+                            <option value="Búlgara">
+                            <option value="Canadiense">
+                            <option value="Chilena">
+                            <option value="China">
+                            <option value="Colombiana">
+                            <option value="Coreana">
+                            <option value="Costarricense">
+                            <option value="Croata">
+                            <option value="Cubana">
+                            <option value="Danesa">
+                            <option value="Dominicana">
+                            <option value="Ecuatoriana">
+                            <option value="Egipcia">
+                            <option value="Española">
+                            <option value="Estadounidense">
+                            <option value="Filipina">
+                            <option value="Finlandesa">
+                            <option value="Francesa">
+                            <option value="Griega">
+                            <option value="Guatemalteca">
+                            <option value="Haitiana">
+                            <option value="Holandesa">
+                            <option value="Hondureña">
+                            <option value="Húngara">
+                            <option value="India">
+                            <option value="Irlandesa">
+                            <option value="Israelí">
+                            <option value="Italiana">
+                            <option value="Jamaiquina">
+                            <option value="Japonesa">
+                            <option value="Libanesa">
+                            <option value="Marroquí">
+                            <option value="Mexicana">
+                            <option value="Nicaragüense">
+                            <option value="Noruega">
+                            <option value="Panameña">
+                            <option value="Paraguaya">
+                            <option value="Peruana">
+                            <option value="Polaca">
+                            <option value="Portuguesa">
+                            <option value="Rumana">
+                            <option value="Rusa">
+                            <option value="Salvadoreña">
+                            <option value="Siria">
+                            <option value="Sudafricana">
+                            <option value="Sueca">
+                            <option value="Suiza">
+                            <option value="Turca">
+                            <option value="Ucraniana">
+                            <option value="Uruguaya">
+                            <option value="Venezolana">
+                        </datalist>
+
+                        <p class="text-[11px] theme-text-muted">
+                            Escribí para ver sugerencias automáticas o ingresá el gentilicio del país.
+                        </p>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Sección 4: Información Profesional Docente -->
+            <div class="space-y-4">
+                <div class="flex items-center gap-2 text-xs font-black uppercase tracking-wider text-indigo-500 border-b theme-border pb-2">
+                    <span class="material-symbols-outlined text-base">psychology</span>
+                    <span>4. Información Profesional Docente</span>
+                </div>
+
+                <div class="space-y-1.5">
+                    <label for="{{ form.titulo_mn.id_for_label }}" class="flex items-center justify-between text-xs font-bold uppercase tracking-wider {% if form.titulo_mn.errors %}text-rose-400{% else %}theme-text-muted{% endif %}">
+                        <span>Título Profesional / Matrícula Nacional</span>
+                    </label>
+                    {{ form.titulo_mn }}
+                    {% if form.titulo_mn.errors %}
+                        <div class="flex items-center gap-1.5 px-2.5 py-1 rounded-lg bg-rose-500/15 border border-rose-500/30 text-rose-300 text-xs font-semibold mt-1">
+                            <span class="material-symbols-outlined text-xs text-rose-400 shrink-0">error</span>
+                            <span>{{ form.titulo_mn.errors.0 }}</span>
+                        </div>
+                    {% endif %}
+                    <p class="text-[11px] theme-text-muted">
+                        Podés ingresar el título de grado, especialidad o el número de matrícula nacional/provincial.
+                    </p>
+                </div>
+            </div>
+
+            <!-- Botones de Acción -->
+            <div class="pt-6 border-t theme-border flex flex-col sm:flex-row items-center justify-between gap-4">
+                <a 
+                    href="{% url 'gestion:docentes' %}" 
+                    class="w-full sm:w-auto px-5 py-3 rounded-2xl border theme-border hover:bg-white/5 text-xs font-bold theme-text-muted hover:theme-text-main transition-all text-center"
+                >
+                    ← Volver a Docentes
+                </a>
+
+                <button 
+                    type="submit" 
+                    id="btnGuardarDocente"
+                    class="w-full sm:w-auto inline-flex items-center justify-center gap-2 bg-gradient-to-r from-indigo-600 to-indigo-700 hover:from-indigo-500 hover:to-indigo-600 text-white font-black px-8 py-3.5 rounded-2xl shadow-xl shadow-indigo-600/30 transition-all text-sm cursor-pointer hover:scale-[1.01]"
+                >
+                    <span>Continuar a Matriz de Docentes</span>
+                    <span class="material-symbols-outlined text-lg">arrow_forward</span>
+                </button>
+            </div>
+        </form>
+    </div>
+
+</div>
+{% endblock %}
+
+{% block extra_scripts %}
+<script>
+    window.toggleOtraNacionalidad = function(valor) {
+        const contenedor = document.getElementById('contenedorOtraNacionalidad');
+        const inputOtra = document.getElementById('id_nacionalidad_otra');
+        if (!contenedor) return;
+
+        if (valor === 'Otra') {
+            contenedor.classList.remove('hidden');
+            if (inputOtra) {
+                inputOtra.focus();
+            }
+        } else {
+            contenedor.classList.add('hidden');
+        }
+    };
+
+    document.addEventListener('DOMContentLoaded', function() {
+        const selectNac = document.getElementById('id_nacionalidad');
+        if (selectNac) {
+            window.toggleOtraNacionalidad(selectNac.value);
+            selectNac.addEventListener('change', function() {
+                window.toggleOtraNacionalidad(this.value);
+            });
+        }
+    });
+</script>
+{% endblock %}

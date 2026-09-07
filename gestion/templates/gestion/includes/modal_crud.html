@@ -1,0 +1,386 @@
+<!-- Modales Modulares y Reutilizables de Edición y Borrado (Alumnos y Docentes) -->
+
+<!-- 1. Modal de Edición Modular -->
+<div id="modalCrudEditar" class="fixed inset-0 z-[9999] hidden flex items-center justify-center p-3 md:p-6 bg-black/75 backdrop-blur-md">
+    <div class="glass-modal w-full max-w-3xl rounded-3xl overflow-hidden max-h-[92vh] flex flex-col shadow-2xl border theme-border animate-in zoom-in-95 duration-200">
+        <!-- Cabecera del Modal -->
+        <div class="px-6 py-4 border-b theme-border flex items-center justify-between gap-3" style="background: var(--header-bg);">
+            <div class="flex items-center gap-3">
+                <div class="w-10 h-10 rounded-xl bg-indigo-600 flex items-center justify-center text-white font-black text-xl shadow-lg shadow-indigo-600/30 shrink-0">
+                    <span class="material-symbols-outlined" id="crudModalIcon">edit</span>
+                </div>
+                <div>
+                    <h3 id="crudModalTitulo" class="text-base md:text-lg font-black theme-text-main leading-tight">Editar Datos</h3>
+                    <p id="crudModalSubtitulo" class="text-xs theme-text-muted mt-0.5">Modificá los campos necesarios y guardá los cambios.</p>
+                </div>
+            </div>
+            <button type="button" onclick="cerrarModalEditar()" class="theme-text-muted hover:text-indigo-500 p-2 rounded-lg hover:bg-indigo-500/10 transition-colors cursor-pointer">
+                <span class="material-symbols-outlined">close</span>
+            </button>
+        </div>
+
+        <!-- Contenido y Formulario -->
+        <div class="p-6 overflow-y-auto space-y-4">
+            <!-- Cartel de Error en Modal (Oculto por defecto) -->
+            <div id="crudModalErrorCard" class="hidden alert-error-card rounded-2xl p-4 border border-rose-500/40 text-xs text-rose-300 space-y-1">
+                <div class="flex items-center gap-2 font-bold text-rose-400">
+                    <span class="material-symbols-outlined text-sm">error</span>
+                    <span id="crudModalErrorTitulo">Error al guardar los cambios</span>
+                </div>
+                <p id="crudModalErrorMensaje" class="text-rose-200 pl-6 leading-relaxed"></p>
+            </div>
+
+            <form id="formCrudEditar" onsubmit="guardarEdicion(event)" class="space-y-4" novalidate>
+                {% csrf_token %}
+                <input type="hidden" id="crudEditTipo" name="tipo" value="">
+                <input type="hidden" id="crudEditDniOriginal" name="dni_original" value="">
+
+                <div class="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 gap-3.5">
+                    <!-- DNI -->
+                    <div>
+                        <label class="block text-[11px] font-bold uppercase tracking-wider theme-text-muted mb-1">DNI *</label>
+                        <input type="text" id="crud_dni" name="dni" required class="w-full px-3 py-2 rounded-xl text-xs font-semibold" placeholder="DNI sin puntos">
+                    </div>
+
+                    <!-- CUIL -->
+                    <div>
+                        <label class="block text-[11px] font-bold uppercase tracking-wider theme-text-muted mb-1">CUIL *</label>
+                        <input type="text" id="crud_cuil" name="cuil" required class="w-full px-3 py-2 rounded-xl text-xs font-semibold font-mono" placeholder="Ej. 20-38123456-7">
+                    </div>
+
+                    <!-- Fecha de Nacimiento -->
+                    <div>
+                        <label class="block text-[11px] font-bold uppercase tracking-wider theme-text-muted mb-1">Fecha de Nacimiento</label>
+                        <input type="date" id="crud_fecha_nacimiento" name="fecha_nacimiento" class="w-full px-3 py-2 rounded-xl text-xs font-semibold">
+                    </div>
+
+                    <!-- Apellido -->
+                    <div>
+                        <label class="block text-[11px] font-bold uppercase tracking-wider theme-text-muted mb-1">Apellido(s) *</label>
+                        <input type="text" id="crud_apellido" name="apellido" required class="w-full px-3 py-2 rounded-xl text-xs font-semibold" placeholder="Apellido completo">
+                    </div>
+
+                    <!-- Nombre -->
+                    <div>
+                        <label class="block text-[11px] font-bold uppercase tracking-wider theme-text-muted mb-1">Nombre(s) *</label>
+                        <input type="text" id="crud_nombre" name="nombre" required class="w-full px-3 py-2 rounded-xl text-xs font-semibold" placeholder="Nombre completo">
+                    </div>
+
+                    <!-- Identidad de Género -->
+                    <div>
+                        <label class="block text-[11px] font-bold uppercase tracking-wider theme-text-muted mb-1">Identidad de Género</label>
+                        <select id="crud_identidad" name="identidad" class="w-full px-3 py-2 rounded-xl text-xs font-semibold cursor-pointer">
+                            <option value="M">Masculino</option>
+                            <option value="F">Femenino</option>
+                            <option value="I">Indistinto</option>
+                            <option value="N">Prefiere no decir</option>
+                        </select>
+                    </div>
+
+                    <!-- Nacionalidad -->
+                    <div>
+                        <label class="block text-[11px] font-bold uppercase tracking-wider theme-text-muted mb-1">Nacionalidad</label>
+                        <input type="text" id="crud_nacionalidad" name="nacionalidad" class="w-full px-3 py-2 rounded-xl text-xs font-semibold" placeholder="Ej. Argentina">
+                    </div>
+
+                    <!-- Localidad -->
+                    <div>
+                        <label class="block text-[11px] font-bold uppercase tracking-wider theme-text-muted mb-1">Localidad</label>
+                        <input type="text" id="crud_localidad" name="localidad" class="w-full px-3 py-2 rounded-xl text-xs font-semibold" placeholder="Ej. General Rodríguez">
+                    </div>
+
+                    <!-- Teléfono -->
+                    <div>
+                        <label class="block text-[11px] font-bold uppercase tracking-wider theme-text-muted mb-1">Teléfono / Celular</label>
+                        <input type="text" id="crud_telefono" name="telefono" class="w-full px-3 py-2 rounded-xl text-xs font-semibold font-mono" placeholder="Ej. +54 9 11 1234-5678">
+                    </div>
+
+                    <!-- Correo Electrónico -->
+                    <div class="sm:col-span-2 md:col-span-2">
+                        <label class="block text-[11px] font-bold uppercase tracking-wider theme-text-muted mb-1">Correo Electrónico</label>
+                        <input type="email" id="crud_mail" name="mail" class="w-full px-3 py-2 rounded-xl text-xs font-semibold" placeholder="correo@ejemplo.com">
+                    </div>
+
+                    <!-- Domicilio -->
+                    <div class="sm:col-span-2 md:col-span-1">
+                        <label class="block text-[11px] font-bold uppercase tracking-wider theme-text-muted mb-1">Domicilio</label>
+                        <input type="text" id="crud_domicilio" name="domicilio" class="w-full px-3 py-2 rounded-xl text-xs font-semibold" placeholder="Calle, número, depto">
+                    </div>
+
+                    <!-- Campo Dinámico: Legajo (Solo Alumnos) -->
+                    <div id="crudContenedorLegajo" class="sm:col-span-2 md:col-span-3 hidden pt-2 border-t theme-border">
+                        <label class="block text-[11px] font-bold uppercase tracking-wider text-indigo-500 mb-1">N° Legajo (Alumno)</label>
+                        <input type="text" id="crud_legajo" name="legajo" class="w-full px-3 py-2 rounded-xl text-xs font-semibold" placeholder="Ej. LEG-12345">
+                    </div>
+
+                    <!-- Campo Dinámico: Título / Matrícula (Solo Docentes) -->
+                    <div id="crudContenedorTitulo" class="sm:col-span-2 md:col-span-3 hidden pt-2 border-t theme-border">
+                        <label class="block text-[11px] font-bold uppercase tracking-wider text-violet-500 mb-1">Título / Matrícula Nacional (Docente)</label>
+                        <input type="text" id="crud_titulo_mn" name="titulo_mn" class="w-full px-3 py-2 rounded-xl text-xs font-semibold" placeholder="Ej. Prof. en Informática / MN 12345">
+                    </div>
+                </div>
+
+                <!-- Botones de Acción -->
+                <div class="pt-4 border-t theme-border flex items-center justify-end gap-2.5">
+                    <button type="button" onclick="cerrarModalEditar()" class="px-4 py-2 rounded-xl border theme-border theme-text-main font-bold text-xs hover:bg-slate-500/10 transition-all cursor-pointer">
+                        Cancelar
+                    </button>
+                    <button type="submit" id="btnGuardarEdicion" class="inline-flex items-center gap-2 px-5 py-2 rounded-xl bg-indigo-600 hover:bg-indigo-500 text-white font-bold text-xs shadow-md shadow-indigo-600/30 transition-all cursor-pointer">
+                        <span class="material-symbols-outlined text-xs">save</span>
+                        <span id="btnGuardarTexto">Guardar Cambios</span>
+                    </button>
+                </div>
+            </form>
+        </div>
+    </div>
+</div>
+
+<!-- 2. Modal de Confirmación de Borrado Modular -->
+<div id="modalCrudEliminar" class="fixed inset-0 z-[9999] hidden flex items-center justify-center p-4 bg-black/75 backdrop-blur-md">
+    <div class="glass-modal w-full max-w-md rounded-3xl p-6 shadow-2xl border theme-border animate-in zoom-in-95 duration-200 text-center space-y-4">
+        <div class="w-14 h-14 mx-auto rounded-2xl bg-rose-500/15 border border-rose-500/30 flex items-center justify-center text-rose-500 shadow-lg shadow-rose-500/20">
+            <span class="material-symbols-outlined text-3xl">delete_forever</span>
+        </div>
+
+        <div class="space-y-1">
+            <h3 class="text-lg font-black theme-text-main">¿Confirmás la eliminación?</h3>
+            <p class="text-xs theme-text-muted leading-relaxed">
+                Estás a punto de eliminar a <strong id="crudEliminarNombre" class="theme-text-main">...</strong> del sistema.
+            </p>
+        </div>
+
+        <div class="p-3 rounded-2xl bg-rose-500/10 border border-rose-500/20 text-xs text-rose-300 font-medium text-left space-y-1">
+            <div class="flex items-center gap-1.5 font-bold text-rose-400">
+                <span class="material-symbols-outlined text-sm">warning</span>
+                <span>Acción irreversible</span>
+            </div>
+            <p class="text-[11px] text-rose-300/90 pl-5">
+                Se eliminarán los registros asociados a este DNI (<span id="crudEliminarDni" class="font-mono font-bold"></span>).
+            </p>
+        </div>
+
+        <input type="hidden" id="crudEliminarTipo" value="">
+        <input type="hidden" id="crudEliminarIdentificador" value="">
+
+        <div class="flex items-center justify-center gap-3 pt-2">
+            <button type="button" onclick="cerrarModalEliminar()" class="px-4 py-2.5 rounded-xl border theme-border theme-text-main font-bold text-xs hover:bg-slate-500/10 transition-all cursor-pointer">
+                Cancelar
+            </button>
+            <button type="button" id="btnConfirmarEliminar" onclick="confirmarEliminacion()" class="inline-flex items-center gap-2 px-5 py-2.5 rounded-xl bg-rose-600 hover:bg-rose-500 text-white font-bold text-xs shadow-lg shadow-rose-600/30 transition-all cursor-pointer">
+                <span class="material-symbols-outlined text-sm">delete</span>
+                <span>Sí, Eliminar Definitivamente</span>
+            </button>
+        </div>
+    </div>
+</div>
+
+<!-- Lógica JavaScript Modular para Edición y Borrado -->
+<script>
+    function getCsrfToken() {
+        var cookieValue = null;
+        if (document.cookie && document.cookie !== '') {
+            var cookies = document.cookie.split(';');
+            for (var i = 0; i < cookies.length; i++) {
+                var cookie = cookies[i].trim();
+                if (cookie.substring(0, 10) === ('csrftoken=')) {
+                    cookieValue = decodeURIComponent(cookie.substring(10));
+                    break;
+                }
+            }
+        }
+        if (!cookieValue) {
+            var tokenInput = document.querySelector('input[name="csrfmiddlewaretoken"]');
+            if (tokenInput) cookieValue = tokenInput.value;
+        }
+        return cookieValue;
+    }
+
+    function abrirModalEditar(tipo, identificador) {
+        var modal = document.getElementById('modalCrudEditar');
+        var errorCard = document.getElementById('crudModalErrorCard');
+        if (errorCard) errorCard.classList.add('hidden');
+
+        document.getElementById('crudEditTipo').value = tipo;
+        document.getElementById('crudEditDniOriginal').value = identificador;
+
+        var isAlumno = (tipo === 'alumno');
+        document.getElementById('crudModalTitulo').textContent = isAlumno ? 'Editar Estudiante' : 'Editar Docente';
+        document.getElementById('crudModalSubtitulo').textContent = isAlumno 
+            ? 'Modificá los datos personales y académicos del estudiante.' 
+            : 'Modificá los datos personales y profesionales del docente.';
+        document.getElementById('crudModalIcon').textContent = isAlumno ? 'school' : 'psychology';
+
+        // Toggle campos específicos
+        document.getElementById('crudContenedorLegajo').classList.toggle('hidden', !isAlumno);
+        document.getElementById('crudContenedorTitulo').classList.toggle('hidden', isAlumno);
+
+        // Deshabilitar botón temporalmente mientras carga
+        var btnGuardar = document.getElementById('btnGuardarEdicion');
+        var btnTexto = document.getElementById('btnGuardarTexto');
+        btnGuardar.disabled = true;
+        btnTexto.textContent = 'Cargando datos...';
+
+        modal.classList.remove('hidden');
+
+        // Fetch datos
+        fetch('/api/persona-datos/' + encodeURIComponent(tipo) + '/' + encodeURIComponent(identificador) + '/')
+            .then(function(res) { return res.json(); })
+            .then(function(data) {
+                btnGuardar.disabled = false;
+                btnTexto.textContent = 'Guardar Cambios';
+
+                if (!data.success) {
+                    alert('No se pudieron recuperar los datos: ' + (data.mensaje || 'Error desconocido'));
+                    cerrarModalEditar();
+                    return;
+                }
+
+                document.getElementById('crud_dni').value = data.dni || '';
+                document.getElementById('crud_cuil').value = data.cuil || '';
+                document.getElementById('crud_apellido').value = data.apellido || '';
+                document.getElementById('crud_nombre').value = data.nombre || '';
+                document.getElementById('crud_fecha_nacimiento').value = data.fecha_nacimiento || '';
+                document.getElementById('crud_identidad').value = data.identidad || 'N';
+                document.getElementById('crud_nacionalidad').value = data.nacionalidad || 'Argentina';
+                document.getElementById('crud_localidad').value = data.localidad || '';
+                document.getElementById('crud_domicilio').value = data.domicilio || '';
+                document.getElementById('crud_telefono').value = data.telefono || '';
+                document.getElementById('crud_mail').value = data.mail || '';
+
+                if (isAlumno) {
+                    document.getElementById('crud_legajo').value = data.legajo || '';
+                } else {
+                    document.getElementById('crud_titulo_mn').value = data.titulo_mn || '';
+                }
+            })
+            .catch(function(err) {
+                btnGuardar.disabled = false;
+                btnTexto.textContent = 'Guardar Cambios';
+                alert('Error al conectar con el servidor: ' + err.message);
+                cerrarModalEditar();
+            });
+    }
+
+    function cerrarModalEditar() {
+        var modal = document.getElementById('modalCrudEditar');
+        if (modal) modal.classList.add('hidden');
+    }
+
+    function guardarEdicion(e) {
+        e.preventDefault();
+        var tipo = document.getElementById('crudEditTipo').value;
+        var dniOriginal = document.getElementById('crudEditDniOriginal').value;
+        var form = document.getElementById('formCrudEditar');
+        var errorCard = document.getElementById('crudModalErrorCard');
+        var errorMensaje = document.getElementById('crudModalErrorMensaje');
+        var btnGuardar = document.getElementById('btnGuardarEdicion');
+        var btnTexto = document.getElementById('btnGuardarTexto');
+
+        errorCard.classList.add('hidden');
+        btnGuardar.disabled = true;
+        btnTexto.textContent = 'Guardando...';
+
+        var formData = new FormData(form);
+
+        fetch('/editar/' + encodeURIComponent(tipo) + '/' + encodeURIComponent(dniOriginal) + '/', {
+            method: 'POST',
+            body: formData,
+            headers: {
+                'X-CSRFToken': getCsrfToken()
+            }
+        })
+        .then(function(res) {
+            return res.json().then(function(data) {
+                return { status: res.status, data: data };
+            });
+        })
+        .then(function(result) {
+            btnGuardar.disabled = false;
+            btnTexto.textContent = 'Guardar Cambios';
+
+            if (result.data.success) {
+                cerrarModalEditar();
+                if (typeof window.mostrarNotificacionExito === 'function') {
+                    window.mostrarNotificacionExito(result.data.mensaje);
+                } else {
+                    alert(result.data.mensaje);
+                }
+                setTimeout(function() {
+                    window.location.reload();
+                }, 800);
+            } else {
+                errorCard.classList.remove('hidden');
+                var msg = result.data.mensaje || 'Por favor revisá los campos con error.';
+                if (result.data.errores) {
+                    var detalles = [];
+                    for (var key in result.data.errores) {
+                        detalles.push('• ' + key.toUpperCase() + ': ' + result.data.errores[key].join(', '));
+                    }
+                    msg += '<br>' + detalles.join('<br>');
+                }
+                errorMensaje.innerHTML = msg;
+            }
+        })
+        .catch(function(err) {
+            btnGuardar.disabled = false;
+            btnTexto.textContent = 'Guardar Cambios';
+            errorCard.classList.remove('hidden');
+            errorMensaje.textContent = 'Error de red o comunicación: ' + err.message;
+        });
+    }
+
+    function abrirModalEliminar(tipo, identificador, nombreCompleto) {
+        document.getElementById('crudEliminarTipo').value = tipo;
+        document.getElementById('crudEliminarIdentificador').value = identificador;
+        document.getElementById('crudEliminarNombre').textContent = nombreCompleto;
+        document.getElementById('crudEliminarDni').textContent = identificador;
+
+        var modal = document.getElementById('modalCrudEliminar');
+        if (modal) modal.classList.remove('hidden');
+    }
+
+    function cerrarModalEliminar() {
+        var modal = document.getElementById('modalCrudEliminar');
+        if (modal) modal.classList.add('hidden');
+    }
+
+    function confirmarEliminacion() {
+        var tipo = document.getElementById('crudEliminarTipo').value;
+        var identificador = document.getElementById('crudEliminarIdentificador').value;
+        var btn = document.getElementById('btnConfirmarEliminar');
+
+        btn.disabled = true;
+        btn.innerHTML = '<span class="material-symbols-outlined text-sm animate-spin">progress_activity</span><span>Eliminando...</span>';
+
+        fetch('/eliminar/' + encodeURIComponent(tipo) + '/' + encodeURIComponent(identificador) + '/', {
+            method: 'POST',
+            headers: {
+                'X-CSRFToken': getCsrfToken()
+            }
+        })
+        .then(function(res) { return res.json(); })
+        .then(function(data) {
+            btn.disabled = false;
+            btn.innerHTML = '<span class="material-symbols-outlined text-sm">delete</span><span>Sí, Eliminar Definitivamente</span>';
+
+            if (data.success) {
+                cerrarModalEliminar();
+                if (typeof window.mostrarNotificacionExito === 'function') {
+                    window.mostrarNotificacionExito(data.mensaje);
+                } else {
+                    alert(data.mensaje);
+                }
+                setTimeout(function() {
+                    window.location.reload();
+                }, 800);
+            } else {
+                alert('No se pudo eliminar el registro: ' + (data.mensaje || 'Error desconocido'));
+            }
+        })
+        .catch(function(err) {
+            btn.disabled = false;
+            btn.innerHTML = '<span class="material-symbols-outlined text-sm">delete</span><span>Sí, Eliminar Definitivamente</span>';
+            alert('Error al conectar con el servidor: ' + err.message);
+        });
+    }
+</script>

@@ -1,0 +1,192 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+    <meta charset="UTF-8">
+    <title>Ficha de Personal Docente — {{ persona.apellido }}, {{ persona.nombre }}</title>
+    <style>
+        @page {
+            size: A4;
+            margin: 1.5cm;
+        }
+        body {
+            font-family: Arial, Helvetica, sans-serif;
+            color: #111827;
+            background: #ffffff;
+            font-size: 11px;
+            line-height: 1.4;
+        }
+        .header {
+            text-align: center;
+            border-bottom: 2px solid #1e3a8a;
+            padding-bottom: 12px;
+            margin-bottom: 16px;
+        }
+        .header h1 {
+            font-size: 15px;
+            margin: 0;
+            color: #1e3a8a;
+            text-transform: uppercase;
+            letter-spacing: 0.5px;
+        }
+        .header h2 {
+            font-size: 13px;
+            margin: 3px 0 0 0;
+            color: #374151;
+        }
+        .section-title {
+            font-size: 12px;
+            font-weight: bold;
+            color: #1e3a8a;
+            border-bottom: 1px solid #d1d5db;
+            padding-bottom: 3px;
+            margin-top: 16px;
+            margin-bottom: 8px;
+            text-transform: uppercase;
+        }
+        .info-grid {
+            display: grid;
+            grid-template-columns: 1fr 1fr 1fr;
+            gap: 6px 12px;
+            margin-bottom: 12px;
+            background: #f8fafc;
+            padding: 10px 14px;
+            border: 1px solid #e2e8f0;
+            border-radius: 6px;
+        }
+        .info-item {
+            font-size: 11px;
+        }
+        .info-item strong {
+            color: #1e293b;
+        }
+        table {
+            width: 100%;
+            border-collapse: collapse;
+            margin-top: 8px;
+        }
+        th, td {
+            border: 1px solid #cbd5e1;
+            padding: 6px 8px;
+            text-align: left;
+        }
+        th {
+            background-color: #f1f5f9;
+            font-weight: bold;
+            color: #1e293b;
+            font-size: 10px;
+            text-transform: uppercase;
+            letter-spacing: 0.3px;
+        }
+        .text-center { text-align: center; }
+        .footer-signature {
+            margin-top: 40px;
+            display: flex;
+            justify-content: space-between;
+            page-break-inside: avoid;
+        }
+        .signature-box {
+            width: 200px;
+            border-top: 1px solid #000;
+            text-align: center;
+            padding-top: 5px;
+            font-size: 10px;
+            color: #334155;
+        }
+        .btn-print {
+            position: fixed;
+            top: 15px;
+            right: 15px;
+            background-color: #2563eb;
+            color: white;
+            padding: 8px 16px;
+            border: none;
+            border-radius: 6px;
+            cursor: pointer;
+            font-weight: bold;
+            font-size: 12px;
+            box-shadow: 0 4px 6px -1px rgba(0, 0, 0, 0.1);
+        }
+        @media print {
+            .btn-print { display: none; }
+        }
+    </style>
+</head>
+<body>
+
+    <button class="btn-print" onclick="window.print()">Imprimir Documento</button>
+
+    <div class="header">
+        <h1>Instituto Superior de Formación Técnica N° 188</h1>
+        <h2>General Rodríguez, Provincia de Buenos Aires</h2>
+        <h3 style="margin: 6px 0 0 0; font-size: 12px; font-weight: bold; color: #475569;">
+            FICHA INSTITUCIONAL DE PERSONAL DOCENTE
+        </h3>
+    </div>
+
+    <div class="section-title">Datos Personales y Filiación del Docente</div>
+    <div class="info-grid">
+        <div class="info-item"><strong>Apellido y Nombre:</strong> {{ persona.apellido }}, {{ persona.nombre }}</div>
+        <div class="info-item"><strong>DNI:</strong> {{ dni_formateado }}</div>
+        <div class="info-item"><strong>CUIL:</strong> {{ cuil_formateado|default:"-" }}</div>
+        <div class="info-item"><strong>Título / Matrícula:</strong> {{ docente.titulo_mn|default:"-" }}</div>
+        <div class="info-item"><strong>Fecha de Nacimiento:</strong> {{ persona.fecha_nacimiento|date:"d/m/Y"|default:"-" }}</div>
+        <div class="info-item"><strong>Edad:</strong> {% if persona.edad %}{{ persona.edad }} años{% else %}-{% endif %}</div>
+        <div class="info-item"><strong>Identidad de Género:</strong> {{ persona.genero_descripcion }} ({{ persona.identidad }})</div>
+        <div class="info-item"><strong>Nacionalidad:</strong> {{ persona.nacionalidad|default:"Argentina" }}</div>
+        <div class="info-item"><strong>Localidad:</strong> {{ persona.localidad|default:"-" }}</div>
+        <div class="info-item"><strong>Domicilio:</strong> {{ persona.domicilio|default:"-" }}</div>
+        <div class="info-item"><strong>Teléfono:</strong> {{ telefono_formateado|default:"-" }}</div>
+        <div class="info-item"><strong>Correo Electrónico:</strong> {{ persona.mail|default:"-" }}</div>
+    </div>
+
+    <div class="section-title">Asignación Académica de Comisiones y Cátedras</div>
+    <table>
+        <thead>
+            <tr>
+                <th style="width: 28%;">Carrera</th>
+                <th style="width: 34%;">Espacio Curricular / Materia</th>
+                <th class="text-center" style="width: 8%;">Año</th>
+                <th class="text-center" style="width: 10%;">Comisión</th>
+                <th class="text-center" style="width: 10%;">Turno/Div.</th>
+                <th class="text-center" style="width: 10%;">Rol Docente</th>
+            </tr>
+        </thead>
+        <tbody>
+            {% for cd in comisiones_doc %}
+            <tr>
+                <td>{{ cd.comision.plan_estudio.carrera.nombre_carrera }}</td>
+                <td><strong>{{ cd.comision.plan_estudio.materia.nombre_materia }}</strong></td>
+                <td class="text-center">{{ cd.comision.plan_estudio.anio_carrera }}°</td>
+                <td class="text-center" style="font-family: monospace; font-weight: bold;">{{ cd.comision.codigo_comision }}</td>
+                <td class="text-center">{{ cd.comision.turno }} ({{ cd.comision.division }})</td>
+                <td class="text-center"><strong>{{ cd.rol_docente|default:"Titular" }}</strong></td>
+            </tr>
+            {% empty %}
+            <tr>
+                <td colspan="6" class="text-center" style="padding: 16px; color: #64748b;">No hay comisiones asignadas actualmente a este/a docente.</td>
+            </tr>
+            {% endfor %}
+        </tbody>
+    </table>
+
+    <div style="margin-top: 16px; padding: 8px 12px; background: #f8fafc; border: 1px solid #e2e8f0; border-radius: 6px; font-size: 11px;">
+        <strong>Resumen de Carga Docente:</strong> {{ total_comisiones }} comisión/es asignada/s &bull; {{ total_materias }} materia/s distinta/s &bull; {{ total_carreras }} carrera/s académica/s.
+    </div>
+
+    <div style="margin-top: 24px; font-size: 10px; color: #64748b; line-height: 1.5;">
+        Se expide la presente ficha de personal docente el día <strong>{{ fecha_emision }}</strong> para constancia del legajo institucional ante las autoridades académicas del Instituto. Documento válido con firma y sello reglamentario.
+    </div>
+
+    <div class="footer-signature">
+        <div class="signature-box">
+            Firma y Sello Secretaría<br>
+            I.S.F.T. N° 188
+        </div>
+        <div class="signature-box">
+            Firma y Sello Dirección<br>
+            I.S.F.T. N° 188
+        </div>
+    </div>
+
+</body>
+</html>

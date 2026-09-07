@@ -5,8 +5,10 @@ module.exports = {
     './gestion/templates/**/*.html',
     './login/templates/**/*.html',
     './carga_alumnos/templates/**/*.html',
+    './carreras/templates/**/*.html',
     './gestion/**/*.py',
     './carga_alumnos/**/*.py',
+    './carreras/**/*.py',
   ],
   theme: {
     extend: {

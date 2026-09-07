@@ -59,7 +59,7 @@
                             <span class="material-symbols-outlined text-base text-indigo-500 shrink-0 mt-0.5">person_add</span>
                             <div>
                                 <span class="font-bold block text-xs">Alta de Alumnos</span>
-                                <span class="text-[11px] theme-text-muted font-normal block">Formulario guiado paso a paso con validaciones</span>
+                                <span class="text-[11px] theme-text-muted font-normal block">Formulario de carga</span>
                             </div>
                         </a>
 
@@ -347,16 +347,39 @@
                                     {{ item.localidad }}
                                 </td>
                                 <td class="py-3.5 px-4 text-center whitespace-nowrap">
-                                    <button 
-                                        type="button"
-                                        data-dni="{{ item.persona.dni }}"
-                                        onclick="cargarEstadoAcademico(this.dataset.dni)"
-                                        class="inline-flex items-center gap-1 bg-indigo-600 hover:bg-indigo-500 text-white text-xs font-bold py-2 px-3.5 rounded-xl shadow-md shadow-indigo-600/20 transition-all hover:scale-105 cursor-pointer"
-                                        title="Ver Expediente Académico"
-                                    >
-                                        <span class="material-symbols-outlined text-xs">badge</span>
-                                        <span>Expediente</span>
-                                    </button>
+                                    <div class="flex items-center justify-center gap-1.5">
+                                        <button 
+                                            type="button"
+                                            data-dni="{{ item.persona.dni }}"
+                                            onclick="cargarEstadoAcademico(this.dataset.dni)"
+                                            class="inline-flex items-center gap-1 bg-indigo-600 hover:bg-indigo-500 text-white text-xs font-bold py-1.5 px-2.5 rounded-xl shadow-md shadow-indigo-600/20 transition-all hover:scale-105 cursor-pointer"
+                                            title="Ver Expediente Académico"
+                                        >
+                                            <span class="material-symbols-outlined text-xs">badge</span>
+                                            <span>Expediente</span>
+                                        </button>
+                                        <button 
+                                            type="button"
+                                            data-dni="{{ item.persona.dni }}"
+                                            onclick="abrirModalEditar('alumno', this.dataset.dni)"
+                                            class="inline-flex items-center gap-1 bg-amber-500/15 hover:bg-amber-500/25 text-amber-500 border border-amber-500/30 text-xs font-bold py-1.5 px-2.5 rounded-xl transition-all hover:scale-105 cursor-pointer"
+                                            title="Editar Alumno"
+                                        >
+                                            <span class="material-symbols-outlined text-xs">edit</span>
+                                            <span>Editar</span>
+                                        </button>
+                                        <button 
+                                            type="button"
+                                            data-dni="{{ item.persona.dni }}"
+                                            data-nombre="{{ item.persona.apellido }}, {{ item.persona.nombre }}"
+                                            onclick="abrirModalEliminar('alumno', this.dataset.dni, this.dataset.nombre)"
+                                            class="inline-flex items-center gap-1 bg-rose-500/15 hover:bg-rose-500/25 text-rose-500 border border-rose-500/30 text-xs font-bold py-1.5 px-2.5 rounded-xl transition-all hover:scale-105 cursor-pointer"
+                                            title="Eliminar Alumno"
+                                        >
+                                            <span class="material-symbols-outlined text-xs">delete</span>
+                                            <span>Borrar</span>
+                                        </button>
+                                    </div>
                                 </td>
                             </tr>
                             {% endfor %}
@@ -1125,4 +1148,5 @@
         document.getElementById('modalEstado').classList.add('hidden');
     }
 </script>
+{% include 'gestion/includes/modal_crud.html' %}
 {% endblock %}

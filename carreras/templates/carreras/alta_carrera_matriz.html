@@ -1,0 +1,482 @@
+{% extends "gestion/base.html" %}
+
+{% block title %}Alta de Carrera — Paso 2: Matriz de Materias — ISFT N° 188{% endblock %}
+
+{% block content %}
+<div class="space-y-6 w-full max-w-7xl mx-auto">
+
+    <!-- Indicador Visual de Flujo de Pasos -->
+    <div class="glass-card p-4 rounded-2xl border theme-border flex items-center justify-center gap-3 sm:gap-6 shadow-md text-xs sm:text-sm">
+        <a href="{% url 'carreras:alta_carrera' %}" class="flex items-center gap-2 text-emerald-500 font-semibold hover:underline">
+            <span class="step-bubble completed">
+                <span class="material-symbols-outlined text-sm">check</span>
+            </span>
+            <span>Paso 1: Datos de la Carrera</span>
+        </a>
+        <div class="w-10 sm:w-16 h-0.5 bg-emerald-500/40"></div>
+        <div class="flex items-center gap-2 text-amber-500 font-bold">
+            <span class="step-bubble active" style="background: #d97706; box-shadow: 0 0 0 4px rgba(217, 119, 6, 0.25);">2</span>
+            <span>Paso 2: Matriz de Materias por Año</span>
+        </div>
+    </div>
+
+    <!-- Encabezado con Resumen de la Carrera -->
+    <div class="glass-card rounded-3xl p-5 sm:p-6 border theme-border shadow-xl flex flex-col md:flex-row items-start md:items-center justify-between gap-4">
+        <div class="flex items-center gap-3.5">
+            <div class="w-12 h-12 rounded-2xl bg-gradient-to-tr from-amber-600 to-amber-500 text-white flex shrink-0 items-center justify-center shadow-lg shadow-amber-600/25">
+                <span class="material-symbols-outlined text-2xl">table_chart</span>
+            </div>
+            <div>
+                <div class="flex items-center gap-2 flex-wrap">
+                    <h3 class="text-base sm:text-lg font-black theme-text-main">
+                        {{ carrera.nombre_carrera }}
+                    </h3>
+                    <span class="badge-pill bg-amber-500/15 border border-amber-500/30 text-amber-400 font-mono text-xs font-bold">
+                        {{ carrera.codigo_carrera }}
+                    </span>
+                    {% if carrera.resolucion_vigente %}
+                    <span class="badge-pill bg-emerald-500/10 border border-emerald-500/30 text-emerald-400 text-[11px] font-semibold">
+                        {{ carrera.resolucion_vigente }}
+                    </span>
+                    {% endif %}
+                </div>
+                <p class="text-xs theme-text-muted mt-0.5">
+                    Plan organizado en matriz curricular. Ingresá las materias correspondientes a cada año académico de la cursada.
+                </p>
+            </div>
+        </div>
+
+        <button 
+            type="button" 
+            onclick="agregarNuevoAnio()" 
+            class="shrink-0 inline-flex items-center gap-2 px-4 py-2 rounded-xl border border-amber-500/30 bg-amber-500/10 hover:bg-amber-500/20 text-amber-400 font-bold text-xs transition-all cursor-pointer shadow-sm hover:scale-[1.02]"
+        >
+            <span class="material-symbols-outlined text-sm">add</span>
+            <span>Sumar Otro Año al Plan</span>
+        </button>
+    </div>
+
+    <!-- Mensajes Flash de Django -->
+    {% if messages %}
+    <div class="space-y-2.5">
+        {% for message in messages %}
+            <div class="glass-card rounded-2xl p-4 border flex items-center justify-between gap-3 shadow-lg 
+                {% if message.tags == 'error' %}border-rose-500/30 bg-rose-500/10 text-rose-400
+                {% elif message.tags == 'success' %}border-emerald-500/30 bg-emerald-500/10 text-emerald-400
+                {% else %}border-amber-500/30 bg-amber-500/10 text-amber-400{% endif %}">
+                <div class="flex items-center gap-2.5 text-xs font-semibold">
+                    <span class="material-symbols-outlined text-base shrink-0">
+                        {% if message.tags == 'error' %}error{% else %}info{% endif %}
+                    </span>
+                    <span>{{ message }}</span>
+                </div>
+                <button type="button" onclick="this.parentElement.remove()" class="p-1 hover:opacity-75 transition-opacity">
+                    <span class="material-symbols-outlined text-xs">close</span>
+                </button>
+            </div>
+        {% endfor %}
+    </div>
+    {% endif %}
+
+    <!-- Formulario de la Matriz Completa -->
+    <form method="post" action="{% url 'carreras:alta_carrera_matriz' %}" id="formMatrizCarrera" class="space-y-6">
+        {% csrf_token %}
+
+        <div id="contenedorBloquesAnios" class="space-y-6">
+            {% for anio in anios_rango %}
+            <!-- Bloque para Año {{ anio }} -->
+            <div class="glass-card rounded-3xl p-5 sm:p-6 border theme-border shadow-xl space-y-4 bloque-anio" data-anio="{{ anio }}">
+                <div class="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-3 pb-3 border-b theme-border">
+                    <div class="flex items-center gap-2.5">
+                        <span class="step-bubble active" style="background: #d97706; width: 28px; height: 28px; font-size: 12px;">{{ anio }}</span>
+                        <h4 class="text-sm sm:text-base font-black theme-text-main">
+                            Asignaturas de {{ anio }}° Año
+                        </h4>
+                        <span class="badge-pill bg-white/5 border theme-border text-[11px] theme-text-muted contador-materias-anio">
+                            1 materia
+                        </span>
+                    </div>
+
+                    <button 
+                        type="button" 
+                        onclick="agregarFilaMateria({{ anio }})" 
+                        class="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-xl bg-amber-500/15 hover:bg-amber-500/25 border border-amber-500/30 text-amber-400 text-xs font-bold transition-all cursor-pointer"
+                    >
+                        <span class="material-symbols-outlined text-sm">add_circle</span>
+                        <span>Agregar Materia a {{ anio }}° Año</span>
+                    </button>
+                </div>
+
+                <!-- Tabla de Materias de este Año -->
+                <div class="overflow-x-auto rounded-2xl border theme-border">
+                    <table class="w-full text-left text-xs min-w-[700px]">
+                        <thead class="theme-table-header uppercase text-[10px] font-bold border-b theme-border">
+                            <tr>
+                                <th scope="col" class="py-2.5 px-3 w-36">Código Materia *</th>
+                                <th scope="col" class="py-2.5 px-3">Nombre de la Asignatura *</th>
+                                <th scope="col" class="py-2.5 px-3 w-32">Modalidad</th>
+                                <th scope="col" class="py-2.5 px-3 w-24 text-center">Hs. Semanales</th>
+                                <th scope="col" class="py-2.5 px-3 w-24 text-center">Hs. Anuales</th>
+                                <th scope="col" class="py-2.5 px-3 w-48">Correlatividades</th>
+                                <th scope="col" class="py-2.5 px-2 w-12 text-center">Acción</th>
+                            </tr>
+                        </thead>
+                        <tbody id="tbodyAnio{{ anio }}" class="divide-y theme-table-divide">
+                            <!-- Fila Inicial por Defecto -->
+                            <tr class="theme-table-row">
+                                <td class="py-2 px-3">
+                                    <input type="hidden" name="materia_anio[]" value="{{ anio }}">
+                                    <input 
+                                        type="text" 
+                                        name="materia_codigo[]" 
+                                        required
+                                        placeholder="Ej. MAT-{{ anio }}01"
+                                        class="w-full px-2.5 py-1.5 rounded-xl font-mono text-xs font-bold border theme-border uppercase shadow-sm"
+                                        autocomplete="off"
+                                    >
+                                </td>
+                                <td class="py-2 px-3">
+                                    <input 
+                                        type="text" 
+                                        name="materia_nombre[]" 
+                                        required
+                                        placeholder="Nombre oficial de la materia"
+                                        class="w-full px-2.5 py-1.5 rounded-xl text-xs font-medium border theme-border shadow-sm"
+                                        autocomplete="off"
+                                    >
+                                </td>
+                                <td class="py-2 px-3">
+                                    <select name="materia_modalidad[]" class="w-full px-2 py-1.5 rounded-xl text-xs font-medium border theme-border shadow-sm cursor-pointer">
+                                        <option value="Anual" selected>Anual</option>
+                                        <option value="1° Cuatrimestre">1° Cuatrimestre</option>
+                                        <option value="2° Cuatrimestre">2° Cuatrimestre</option>
+                                    </select>
+                                </td>
+                                <td class="py-2 px-3 text-center">
+                                    <input 
+                                        type="number" 
+                                        step="0.5" 
+                                        min="0" 
+                                        name="materia_hs_semanal[]" 
+                                        placeholder="Hs" 
+                                        class="w-full px-2 py-1.5 rounded-xl text-xs text-center border theme-border shadow-sm"
+                                    >
+                                </td>
+                                <td class="py-2 px-3 text-center">
+                                    <input 
+                                        type="number" 
+                                        min="0" 
+                                        name="materia_hs_anual[]" 
+                                        placeholder="Hs" 
+                                        class="w-full px-2 py-1.5 rounded-xl text-xs text-center border theme-border shadow-sm"
+                                    >
+                                </td>
+                                <td class="py-2 px-3">
+                                    <input 
+                                        type="text" 
+                                        name="materia_correlatividades[]" 
+                                        placeholder="Ej. Materia previa..." 
+                                        class="w-full px-2.5 py-1.5 rounded-xl text-xs border theme-border shadow-sm"
+                                    >
+                                </td>
+                                <td class="py-2 px-2 text-center">
+                                    <button 
+                                        type="button" 
+                                        onclick="eliminarFilaMateria(this)" 
+                                        class="p-1 rounded-lg text-rose-400 hover:bg-rose-500/10 transition-colors cursor-pointer"
+                                        title="Eliminar fila de materia"
+                                    >
+                                        <span class="material-symbols-outlined text-base">delete</span>
+                                    </button>
+                                </td>
+                            </tr>
+                        </tbody>
+                    </table>
+                </div>
+            </div>
+            {% endfor %}
+        </div>
+
+        <!-- Botones Inferiores de Acción -->
+        <div class="glass-card rounded-3xl p-5 sm:p-6 border theme-border shadow-xl flex flex-col sm:flex-row items-center justify-between gap-4">
+            <div class="flex items-center gap-2 w-full sm:w-auto">
+                <button 
+                    type="submit" 
+                    name="accion" 
+                    value="volver" 
+                    formnovalidate
+                    class="w-full sm:w-auto px-5 py-3 rounded-2xl border theme-border hover:bg-white/5 text-xs font-bold theme-text-muted hover:theme-text-main transition-all text-center cursor-pointer"
+                >
+                    ← Modificar Datos de Carrera
+                </button>
+
+                <button 
+                    type="submit" 
+                    name="accion" 
+                    value="cancelar" 
+                    formnovalidate
+                    onclick="return confirm('¿Estás seguro de cancelar? Se perderán los datos no guardados.')"
+                    class="w-full sm:w-auto px-4 py-3 rounded-2xl hover:bg-rose-500/10 text-rose-400 text-xs font-bold transition-all text-center cursor-pointer"
+                >
+                    Cancelar
+                </button>
+            </div>
+
+            <button 
+                type="submit" 
+                name="accion" 
+                value="guardar" 
+                id="btnGuardarCarreraCompleta"
+                style="background-color: #f59e0b; color: #0f172a;"
+                class="w-full sm:w-auto inline-flex items-center justify-center gap-2 font-black px-8 py-3.5 rounded-2xl shadow-xl shadow-amber-500/30 transition-all text-sm cursor-pointer hover:scale-[1.01] hover:brightness-105"
+            >
+                <span class="material-symbols-outlined text-lg">check_circle</span>
+                <span>Confirmar y Guardar Carrera Completa</span>
+            </button>
+        </div>
+    </form>
+</div>
+{% endblock %}
+
+{% block extra_scripts %}
+<script>
+    let ultimoAnio = {{ duracion }};
+
+    function actualizarContadores() {
+        document.querySelectorAll('.bloque-anio').forEach(bloque => {
+            const anio = bloque.getAttribute('data-anio');
+            const tbody = document.getElementById('tbodyAnio' + anio);
+            const count = tbody ? tbody.querySelectorAll('tr').length : 0;
+            const badge = bloque.querySelector('.contador-materias-anio');
+            if (badge) {
+                badge.innerText = count + (count === 1 ? ' materia' : ' materias');
+            }
+        });
+    }
+
+    function agregarFilaMateria(anio) {
+        const tbody = document.getElementById('tbodyAnio' + anio);
+        if (!tbody) return;
+
+        const rowCount = tbody.querySelectorAll('tr').length + 1;
+        const codigoSugerido = 'MAT-' + anio + (rowCount < 10 ? '0' : '') + rowCount;
+
+        const tr = document.createElement('tr');
+        tr.className = 'theme-table-row';
+        tr.innerHTML = `
+            <td class="py-2 px-3">
+                <input type="hidden" name="materia_anio[]" value="${anio}">
+                <input 
+                    type="text" 
+                    name="materia_codigo[]" 
+                    required
+                    placeholder="Ej. ${codigoSugerido}"
+                    class="w-full px-2.5 py-1.5 rounded-xl font-mono text-xs font-bold border theme-border uppercase shadow-sm"
+                    autocomplete="off"
+                >
+            </td>
+            <td class="py-2 px-3">
+                <input 
+                    type="text" 
+                    name="materia_nombre[]" 
+                    required
+                    placeholder="Nombre oficial de la materia"
+                    class="w-full px-2.5 py-1.5 rounded-xl text-xs font-medium border theme-border shadow-sm"
+                    autocomplete="off"
+                >
+            </td>
+            <td class="py-2 px-3">
+                <select name="materia_modalidad[]" class="w-full px-2 py-1.5 rounded-xl text-xs font-medium border theme-border shadow-sm cursor-pointer">
+                    <option value="Anual" selected>Anual</option>
+                    <option value="1° Cuatrimestre">1° Cuatrimestre</option>
+                    <option value="2° Cuatrimestre">2° Cuatrimestre</option>
+                </select>
+            </td>
+            <td class="py-2 px-3 text-center">
+                <input 
+                    type="number" 
+                    step="0.5" 
+                    min="0" 
+                    name="materia_hs_semanal[]" 
+                    placeholder="Hs" 
+                    class="w-full px-2 py-1.5 rounded-xl text-xs text-center border theme-border shadow-sm"
+                >
+            </td>
+            <td class="py-2 px-3 text-center">
+                <input 
+                    type="number" 
+                    min="0" 
+                    name="materia_hs_anual[]" 
+                    placeholder="Hs" 
+                    class="w-full px-2 py-1.5 rounded-xl text-xs text-center border theme-border shadow-sm"
+                >
+            </td>
+            <td class="py-2 px-3">
+                <input 
+                    type="text" 
+                    name="materia_correlatividades[]" 
+                    placeholder="Ej. Materia previa..." 
+                    class="w-full px-2.5 py-1.5 rounded-xl text-xs border theme-border shadow-sm"
+                >
+            </td>
+            <td class="py-2 px-2 text-center">
+                <button 
+                    type="button" 
+                    onclick="eliminarFilaMateria(this)" 
+                    class="p-1 rounded-lg text-rose-400 hover:bg-rose-500/10 transition-colors cursor-pointer"
+                    title="Eliminar fila de materia"
+                >
+                    <span class="material-symbols-outlined text-base">delete</span>
+                </button>
+            </td>
+        `;
+        tbody.appendChild(tr);
+        actualizarContadores();
+    }
+
+    function eliminarFilaMateria(btn) {
+        const tr = btn.closest('tr');
+        const tbody = tr.closest('tbody');
+        if (tbody.querySelectorAll('tr').length <= 1) {
+            alert('Cada año debe tener al menos una fila de materia. Si no corresponde ninguna asignatura, podés dejar sus campos vacíos.');
+            return;
+        }
+        tr.remove();
+        actualizarContadores();
+    }
+
+    function agregarNuevoAnio() {
+        ultimoAnio++;
+        const contenedor = document.getElementById('contenedorBloquesAnios');
+
+        const div = document.createElement('div');
+        div.className = 'glass-card rounded-3xl p-5 sm:p-6 border theme-border shadow-xl space-y-4 bloque-anio animate-in fade-in duration-200';
+        div.setAttribute('data-anio', ultimoAnio);
+
+        div.innerHTML = `
+            <div class="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-3 pb-3 border-b theme-border">
+                <div class="flex items-center gap-2.5">
+                    <span class="step-bubble active" style="background: #d97706; width: 28px; height: 28px; font-size: 12px;">${ultimoAnio}</span>
+                    <h4 class="text-sm sm:text-base font-black theme-text-main">
+                        Asignaturas de ${ultimoAnio}° Año
+                    </h4>
+                    <span class="badge-pill bg-white/5 border theme-border text-[11px] theme-text-muted contador-materias-anio">
+                        1 materia
+                    </span>
+                </div>
+
+                <div class="flex items-center gap-2">
+                    <button 
+                        type="button" 
+                        onclick="agregarFilaMateria(${ultimoAnio})" 
+                        class="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-xl bg-amber-500/15 hover:bg-amber-500/25 border border-amber-500/30 text-amber-400 text-xs font-bold transition-all cursor-pointer"
+                    >
+                        <span class="material-symbols-outlined text-sm">add_circle</span>
+                        <span>Agregar Materia a ${ultimoAnio}° Año</span>
+                    </button>
+                    <button 
+                        type="button" 
+                        onclick="this.closest('.bloque-anio').remove(); actualizarContadores();" 
+                        class="p-1.5 rounded-xl text-rose-400 hover:bg-rose-500/10 transition-colors cursor-pointer"
+                        title="Quitar este bloque anual"
+                    >
+                        <span class="material-symbols-outlined text-base">close</span>
+                    </button>
+                </div>
+            </div>
+
+            <div class="overflow-x-auto rounded-2xl border theme-border">
+                <table class="w-full text-left text-xs min-w-[700px]">
+                    <thead class="theme-table-header uppercase text-[10px] font-bold border-b theme-border">
+                        <tr>
+                            <th scope="col" class="py-2.5 px-3 w-36">Código Materia *</th>
+                            <th scope="col" class="py-2.5 px-3">Nombre de la Asignatura *</th>
+                            <th scope="col" class="py-2.5 px-3 w-32">Modalidad</th>
+                            <th scope="col" class="py-2.5 px-3 w-24 text-center">Hs. Semanales</th>
+                            <th scope="col" class="py-2.5 px-3 w-24 text-center">Hs. Anuales</th>
+                            <th scope="col" class="py-2.5 px-3 w-48">Correlatividades</th>
+                            <th scope="col" class="py-2.5 px-2 w-12 text-center">Acción</th>
+                        </tr>
+                    </thead>
+                    <tbody id="tbodyAnio${ultimoAnio}" class="divide-y theme-table-divide">
+                        <tr class="theme-table-row">
+                            <td class="py-2 px-3">
+                                <input type="hidden" name="materia_anio[]" value="${ultimoAnio}">
+                                <input 
+                                    type="text" 
+                                    name="materia_codigo[]" 
+                                    required
+                                    placeholder="Ej. MAT-${ultimoAnio}01"
+                                    class="w-full px-2.5 py-1.5 rounded-xl font-mono text-xs font-bold border theme-border uppercase shadow-sm"
+                                    autocomplete="off"
+                                >
+                            </td>
+                            <td class="py-2 px-3">
+                                <input 
+                                    type="text" 
+                                    name="materia_nombre[]" 
+                                    required
+                                    placeholder="Nombre oficial de la materia"
+                                    class="w-full px-2.5 py-1.5 rounded-xl text-xs font-medium border theme-border shadow-sm"
+                                    autocomplete="off"
+                                >
+                            </td>
+                            <td class="py-2 px-3">
+                                <select name="materia_modalidad[]" class="w-full px-2 py-1.5 rounded-xl text-xs font-medium border theme-border shadow-sm cursor-pointer">
+                                    <option value="Anual" selected>Anual</option>
+                                    <option value="1° Cuatrimestre">1° Cuatrimestre</option>
+                                    <option value="2° Cuatrimestre">2° Cuatrimestre</option>
+                                </select>
+                            </td>
+                            <td class="py-2 px-3 text-center">
+                                <input 
+                                    type="number" 
+                                    step="0.5" 
+                                    min="0" 
+                                    name="materia_hs_semanal[]" 
+                                    placeholder="Hs" 
+                                    class="w-full px-2 py-1.5 rounded-xl text-xs text-center border theme-border shadow-sm"
+                                >
+                            </td>
+                            <td class="py-2 px-3 text-center">
+                                <input 
+                                    type="number" 
+                                    min="0" 
+                                    name="materia_hs_anual[]" 
+                                    placeholder="Hs" 
+                                    class="w-full px-2 py-1.5 rounded-xl text-xs text-center border theme-border shadow-sm"
+                                >
+                            </td>
+                            <td class="py-2 px-3">
+                                <input 
+                                    type="text" 
+                                    name="materia_correlatividades[]" 
+                                    placeholder="Ej. Materia previa..." 
+                                    class="w-full px-2.5 py-1.5 rounded-xl text-xs border theme-border shadow-sm"
+                                >
+                            </td>
+                            <td class="py-2 px-2 text-center">
+                                <button 
+                                    type="button" 
+                                    onclick="eliminarFilaMateria(this)" 
+                                    class="p-1 rounded-lg text-rose-400 hover:bg-rose-500/10 transition-colors cursor-pointer"
+                                    title="Eliminar fila de materia"
+                                >
+                                    <span class="material-symbols-outlined text-base">delete</span>
+                                </button>
+                            </td>
+                        </tr>
+                    </tbody>
+                </table>
+            </div>
+        `;
+
+        contenedor.appendChild(div);
+        actualizarContadores();
+    }
+
+    document.addEventListener('DOMContentLoaded', function() {
+        actualizarContadores();
+    });
+</script>
+{% endblock %}

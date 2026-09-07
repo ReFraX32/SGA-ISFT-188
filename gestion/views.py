@@ -459,3 +459,154 @@ def importar_alumnos_view(request):
 
     resultado = procesar_importacion_alumnos_excel(archivo)
     return JsonResponse(resultado)
+
+
+@login_required(login_url='login:login')
+def persona_datos_json(request, tipo, identificador):
+    """
+    Retorna los datos de una persona (alumno o docente) en formato JSON
+    para poblar dinámicamente el modal de edición.
+    """
+    identificador_str = str(identificador).strip()
+    persona = Persona.objects.filter(Q(dni=identificador_str) | Q(id_persona__iexact=identificador_str)).first()
+    if not persona and identificador_str.isdigit():
+        persona = Persona.objects.filter(id_persona=int(identificador_str)).first()
+
+    if not persona:
+        return JsonResponse({'success': False, 'mensaje': 'Persona no encontrada.'}, status=404)
+
+    data = {
+        'success': True,
+        'id_persona': persona.id_persona,
+        'tipo': tipo,
+        'dni': persona.dni,
+        'cuil': persona.cuil or '',
+        'nombre': persona.nombre,
+        'apellido': persona.apellido,
+        'fecha_nacimiento': persona.fecha_nacimiento.strftime('%Y-%m-%d') if persona.fecha_nacimiento else '',
+        'identidad': persona.identidad,
+        'nacionalidad': persona.nacionalidad or 'Argentina',
+        'localidad': persona.localidad or '',
+        'domicilio': persona.domicilio or '',
+        'telefono': persona.telefono or '',
+        'mail': persona.mail or '',
+    }
+
+    if tipo == 'alumno':
+        alumno = Alumno.objects.filter(persona=persona).first()
+        data['legajo'] = alumno.legajo if alumno else ''
+    elif tipo == 'docente':
+        docente = Docente.objects.filter(persona=persona).first()
+        data['titulo_mn'] = docente.titulo_mn if docente else ''
+
+    return JsonResponse(data)
+
+
+@login_required(login_url='login:login')
+@csrf_protect
+def persona_editar_view(request, tipo, identificador):
+    """
+    Endpoint modular para procesar la edición de Alumnos y Docentes.
+    """
+    if request.method != 'POST':
+        return JsonResponse({'success': False, 'mensaje': 'Método no permitido.'}, status=405)
+
+    identificador_str = str(identificador).strip()
+    persona = Persona.objects.filter(Q(dni=identificador_str) | Q(id_persona__iexact=identificador_str)).first()
+    if not persona and identificador_str.isdigit():
+        persona = Persona.objects.filter(id_persona=int(identificador_str)).first()
+
+    if not persona:
+        return JsonResponse({'success': False, 'mensaje': 'Registro no encontrado.'}, status=404)
+
+    from .forms import AlumnoEditForm, DocenteForm
+
+    if tipo == 'alumno':
+        form = AlumnoEditForm(request.POST, instance=persona)
+        nombre_rol = "Estudiante"
+    elif tipo == 'docente':
+        form = DocenteForm(request.POST, instance=persona)
+        nombre_rol = "Docente"
+    else:
+        return JsonResponse({'success': False, 'mensaje': f"Tipo '{tipo}' inválido."}, status=400)
+
+    if form.is_valid():
+        form.save()
+        mensaje_exito = f"{nombre_rol} {persona.apellido}, {persona.nombre} actualizado/a correctamente."
+        return JsonResponse({'success': True, 'mensaje': mensaje_exito})
+    else:
+        # Extraer errores legibles
+        errores_dict = {}
+        for campo, errores in form.errors.items():
+            errores_dict[campo] = [str(e) for e in errores]
+        primer_error = next(iter(form.errors.values()))[0] if form.errors else "Error de validación."
+        return JsonResponse({
+            'success': False,
+            'mensaje': str(primer_error),
+            'errores': errores_dict
+        }, status=400)
+
+
+@login_required(login_url='login:login')
+@csrf_protect
+def persona_eliminar_view(request, tipo, identificador):
+    """
+    Endpoint modular para eliminación segura de Alumnos y Docentes con confirmación.
+    """
+    if request.method != 'POST':
+        return JsonResponse({'success': False, 'mensaje': 'Método no permitido.'}, status=405)
+
+    identificador_str = str(identificador).strip()
+    persona = Persona.objects.filter(Q(dni=identificador_str) | Q(id_persona__iexact=identificador_str)).first()
+    if not persona and identificador_str.isdigit():
+        persona = Persona.objects.filter(id_persona=int(identificador_str)).first()
+
+    if not persona:
+        return JsonResponse({'success': False, 'mensaje': 'Registro no encontrado.'}, status=404)
+
+    nombre_completo = f"{persona.apellido}, {persona.nombre}"
+    dni_persona = persona.dni
+
+    if tipo == 'alumno':
+        alumno = Alumno.objects.filter(persona=persona).first()
+        if not alumno:
+            return JsonResponse({'success': False, 'mensaje': 'Perfil de alumno no encontrado.'}, status=404)
+
+        # Si no tiene perfil de docente, eliminamos la Persona completa (cascada en cursadas, evaluaciones y alumno)
+        tiene_docente = Docente.objects.filter(persona=persona).exists()
+        if tiene_docente:
+            alumno.delete()
+        else:
+            persona.delete()
+
+        # Limpiar en carga_alumnos si existe
+        if apps.is_installed('carga_alumnos'):
+            try:
+                AlumnoCarga = apps.get_model('carga_alumnos', 'Alumno')
+                AlumnoCarga.objects.filter(dni=dni_persona).delete()
+            except Exception:
+                pass
+
+        return JsonResponse({
+            'success': True,
+            'mensaje': f"El/la estudiante {nombre_completo} (DNI: {dni_persona}) ha sido eliminado/a correctamente del sistema."
+        })
+
+    elif tipo == 'docente':
+        docente = Docente.objects.filter(persona=persona).first()
+        if not docente:
+            return JsonResponse({'success': False, 'mensaje': 'Perfil de docente no encontrado.'}, status=404)
+
+        tiene_alumno = Alumno.objects.filter(persona=persona).exists()
+        if tiene_alumno:
+            docente.delete()
+        else:
+            persona.delete()
+
+        return JsonResponse({
+            'success': True,
+            'mensaje': f"El/la docente {nombre_completo} (DNI: {dni_persona}) ha sido eliminado/a correctamente del sistema."
+        })
+
+    return JsonResponse({'success': False, 'mensaje': f"Tipo '{tipo}' inválido."}, status=400)
+

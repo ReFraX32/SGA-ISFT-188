@@ -1,0 +1,210 @@
+{% load static %}
+<!DOCTYPE html>
+<html lang="es">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Plan de Estudios — {{ carrera.nombre_carrera }} — ISFT N° 188</title>
+    <link rel="stylesheet" href="{% static 'css/tailwind.min.css' %}">
+    <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800;900&display=swap">
+    <style>
+        body {
+            font-family: 'Inter', Arial, Helvetica, sans-serif;
+            background-color: #ffffff;
+            color: #0f172a;
+            font-size: 12px;
+            line-height: 1.4;
+        }
+        table {
+            table-layout: fixed !important;
+            width: 100% !important;
+            border-collapse: collapse !important;
+        }
+        th, td {
+            word-wrap: break-word;
+            overflow-wrap: break-word;
+        }
+        @media print {
+            .no-print {
+                display: none !important;
+            }
+            body {
+                margin: 0;
+                padding: 10mm;
+                background-color: #ffffff !important;
+                color: #000000 !important;
+            }
+            @page {
+                size: A4 portrait;
+                margin: 12mm 10mm 15mm 10mm;
+            }
+            .page-break {
+                page-break-after: always;
+            }
+            th, td {
+                border: 1px solid #64748b !important;
+            }
+            .signature-container {
+                page-break-inside: avoid !important;
+            }
+        }
+    </style>
+</head>
+<body class="p-6 md:p-10 max-w-5xl mx-auto text-slate-900">
+
+    <!-- Barra Superior de Impresión (Oculta al imprimir) -->
+    <div class="no-print mb-8 p-4 bg-slate-100 rounded-2xl border border-slate-300 flex items-center justify-between shadow-sm">
+        <div class="flex items-center gap-3">
+            <a 
+                href="{% url 'carreras:carreras_list' %}" 
+                class="px-4 py-2 bg-white border border-slate-300 rounded-xl text-xs font-bold text-slate-700 hover:bg-slate-50 transition-colors"
+            >
+                ← Volver al Catálogo
+            </a>
+            <span class="text-xs font-bold text-slate-500">Documento Oficial de Plan Curricular</span>
+        </div>
+
+        <button 
+            type="button" 
+            onclick="window.print()" 
+            class="px-6 py-2.5 bg-indigo-600 hover:bg-indigo-700 text-white font-black text-xs rounded-xl shadow-md transition-all flex items-center gap-2 cursor-pointer"
+        >
+            <span>Imprimir Plan de Estudios</span>
+        </button>
+    </div>
+
+    <!-- Membrete Institucional -->
+    <header class="border-b-2 border-slate-800 pb-4 mb-6 flex items-center justify-between">
+        <div>
+            <span class="text-[11px] font-black uppercase tracking-widest text-slate-500 block">
+                Dirección General de Cultura y Educación — Pcia. de Buenos Aires
+            </span>
+            <h1 class="text-xl font-black text-slate-900 leading-tight uppercase">
+                Instituto Superior de Formación Técnica N° 188
+            </h1>
+            <p class="text-xs text-slate-600 font-semibold mt-0.5">
+                General Rodríguez — Región Educativa 10
+            </p>
+        </div>
+        <div class="text-right border-l-2 border-slate-300 pl-4">
+            <span class="text-[10px] font-bold uppercase tracking-wider text-slate-400 block">Documento Oficial</span>
+            <span class="text-sm font-black text-slate-800 block">ESTRUCTURA CURRICULAR</span>
+            <span class="text-[11px] font-mono text-slate-600">ISFT-188-CURR</span>
+        </div>
+    </header>
+
+    <!-- Ficha de la Carrera -->
+    <section class="bg-slate-50 border border-slate-300 rounded-xl p-4 mb-6 text-xs space-y-2">
+        <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
+            <div>
+                <span class="text-[10px] font-bold uppercase tracking-wider text-slate-500 block">Carrera / Tecnicatura:</span>
+                <span class="text-sm font-black text-slate-900 block">{{ carrera.nombre_carrera }}</span>
+            </div>
+            <div>
+                <span class="text-[10px] font-bold uppercase tracking-wider text-slate-500 block">Código Oficial Institucional:</span>
+                <span class="text-sm font-mono font-bold text-slate-900 block">{{ carrera.codigo_carrera }}</span>
+            </div>
+        </div>
+
+        <div class="grid grid-cols-2 md:grid-cols-4 gap-3 pt-2 border-t border-slate-200">
+            <div>
+                <span class="text-[10px] font-bold uppercase tracking-wider text-slate-500 block">Resolución Vigente:</span>
+                <span class="font-bold text-slate-800">{{ carrera.resolucion_vigente|default:"Sin resolución" }}</span>
+            </div>
+            <div>
+                <span class="text-[10px] font-bold uppercase tracking-wider text-slate-500 block">Resolución Anterior:</span>
+                <span class="font-semibold text-slate-700">{{ carrera.resolucion_anterior|default:"Ninguna" }}</span>
+            </div>
+            <div>
+                <span class="text-[10px] font-bold uppercase tracking-wider text-slate-500 block">Total Materias:</span>
+                <span class="font-bold text-slate-800">{{ total_materias }} asignaturas</span>
+            </div>
+            <div>
+                <span class="text-[10px] font-bold uppercase tracking-wider text-slate-500 block">Carga Horaria Total:</span>
+                <span class="font-bold text-slate-800">{{ total_horas_anuales }} hs reloj anuales</span>
+            </div>
+        </div>
+    </section>
+
+    <!-- Asignaturas Agrupadas por Año (Proporciones fijas idénticas en todas las tablas) -->
+    <section class="space-y-6">
+        {% for anio in anios %}
+        <div class="space-y-2">
+            <div class="flex items-center justify-between border-b-2 border-slate-700 pb-1">
+                <h2 class="text-xs font-black uppercase tracking-wider text-slate-900">
+                    {{ anio.nombre }} — ({{ anio.total_materias }} materias)
+                </h2>
+                <span class="text-[10px] font-bold text-slate-500 uppercase">Bloque Curricular Anual</span>
+            </div>
+
+            <table class="w-full text-left text-xs border border-slate-300" style="table-layout: fixed; width: 100%;">
+                <thead class="bg-slate-100 text-[10px] font-black uppercase tracking-wider text-slate-700 border-b border-slate-300">
+                    <tr>
+                        <th class="py-2 px-2.5 border-r border-slate-300" style="width: 14%;">Código</th>
+                        <th class="py-2 px-3 border-r border-slate-300" style="width: 36%;">Materia / Asignatura</th>
+                        <th class="py-2 px-2.5 border-r border-slate-300" style="width: 14%;">Modalidad</th>
+                        <th class="py-2 px-2 text-center border-r border-slate-300" style="width: 8%;">Hs. Sem</th>
+                        <th class="py-2 px-2 text-center border-r border-slate-300" style="width: 8%;">Hs. Anuales</th>
+                        <th class="py-2 px-3" style="width: 20%;">Correlatividades</th>
+                    </tr>
+                </thead>
+                <tbody class="divide-y divide-slate-200">
+                    {% for p in anio.planes %}
+                    <tr class="hover:bg-slate-50">
+                        <td class="py-2 px-2.5 font-mono font-bold text-[11px] text-slate-700 border-r border-slate-200">
+                            {{ p.materia.codigo_materia }}
+                        </td>
+                        <td class="py-2 px-3 font-semibold text-slate-900 border-r border-slate-200">
+                            {{ p.materia.nombre_materia }}
+                        </td>
+                        <td class="py-2 px-2.5 text-slate-700 border-r border-slate-200 text-[11px]">
+                            {{ p.modalidad }}
+                        </td>
+                        <td class="py-2 px-2 text-center text-slate-800 font-bold border-r border-slate-200">
+                            {{ p.carga_horaria_semanal|default:"-" }}
+                        </td>
+                        <td class="py-2 px-2 text-center text-slate-800 font-bold border-r border-slate-200">
+                            {{ p.carga_horaria_anual|default:"-" }}
+                        </td>
+                        <td class="py-2 px-3 text-slate-600 text-[11px]">
+                            {{ p.correlatividades|default:"—" }}
+                        </td>
+                    </tr>
+                    {% empty %}
+                    <tr>
+                        <td colspan="6" class="py-3 px-3 text-center text-slate-400 italic">
+                            Sin materias registradas para este año.
+                        </td>
+                    </tr>
+                    {% endfor %}
+                </tbody>
+            </table>
+        </div>
+        {% empty %}
+        <div class="p-6 text-center text-slate-400 italic border border-slate-200 rounded-xl">
+            Esta carrera no posee materias configuradas actualmente.
+        </div>
+        {% endfor %}
+    </section>
+
+    <!-- Firmas y Certificación Institucional (Visible en pantalla y al imprimir) -->
+    <div class="signature-container mt-14 pt-8 border-t-2 border-slate-300" style="page-break-inside: avoid;">
+        <div style="display: flex; justify-content: space-around; align-items: flex-end; padding-top: 40px; margin-bottom: 20px;">
+            <div style="width: 240px; text-align: center;">
+                <div style="border-top: 1.5px solid #0f172a; padding-top: 8px;">
+                    <strong style="font-size: 11px; display: block; color: #0f172a;">Firma y Sello Secretaría</strong>
+                    <span style="font-size: 10px; color: #64748b; display: block;">I.S.F.T. N° 188</span>
+                </div>
+            </div>
+
+            <div style="width: 240px; text-align: center;">
+                <div style="border-top: 1.5px solid #0f172a; padding-top: 8px;">
+                    <strong style="font-size: 11px; display: block; color: #0f172a;">Firma y Sello Dirección</strong>
+                    <span style="font-size: 10px; color: #64748b; display: block;">I.S.F.T. N° 188</span>
+                </div>
+            </div>
+        </div>
+    </div>
+
+</body>
+</html>

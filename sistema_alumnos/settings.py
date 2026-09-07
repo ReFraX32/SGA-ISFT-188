@@ -39,6 +39,7 @@ INSTALLED_APPS = [
     'login',
     'gestion',
     'carga_alumnos',
+    'carreras',
 ]
 
 LOGIN_URL = 'login:login'

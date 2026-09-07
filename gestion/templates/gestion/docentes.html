@@ -4,105 +4,418 @@
 
 {% block content %}
 <div class="space-y-6">
-    <div class="glass-card p-6 md:p-8 rounded-3xl shadow-2xl">
-        <div class="flex flex-col md:flex-row md:items-center justify-between gap-4">
+    <!-- Encabezado y Acciones -->
+    <div class="glass-card p-6 md:p-8 rounded-3xl relative shadow-2xl z-30">
+        <div class="relative z-10 flex flex-col md:flex-row md:items-center justify-between gap-6">
             <div>
-                <h1 class="text-2xl md:text-3xl font-black tracking-tight theme-text-main">Buscador de Docentes</h1>
-                <p class="text-xs md:text-sm theme-text-muted mt-1">Consultá docentes por nombre, apellido, DNI, CUIL, localidad o título/matrícula.</p>
+                <h1 class="text-2xl md:text-3xl font-black tracking-tight theme-text-main">Nómina y Buscador de Docentes</h1>
+                <p class="text-xs md:text-sm theme-text-muted mt-1">Consultá, editá y gestioná a los docentes por nombre, DNI, CUIL, localidad, nacionalidad o título/matrícula.</p>
             </div>
-            <div class="flex items-center gap-2">
-                <button onclick="abrirModalImportarDocentes()" class="inline-flex items-center justify-center gap-2 px-4 py-2.5 rounded-xl bg-gradient-to-r from-violet-600 to-violet-700 hover:from-violet-500 hover:to-violet-600 text-white font-bold text-xs shadow-lg shadow-violet-600/30 transition-all cursor-pointer">
-                    <span class="material-symbols-outlined text-sm">upload_file</span>
-                    Cargar desde Excel
-                </button>
-                <a href="{% url 'gestion:buscador' %}" class="inline-flex items-center justify-center gap-2 px-4 py-2.5 rounded-xl border theme-border theme-text-main font-bold text-xs hover:bg-indigo-500/10 transition-all">
+
+            <div class="flex items-center gap-3 flex-wrap">
+                <!-- Menú Desplegable: Cargar Docentes -->
+                <div class="relative inline-block text-left z-50" id="dropdownCargarDocentesContainer">
+                    <button 
+                        type="button" 
+                        onclick="toggleDropdownCargarDocentes()" 
+                        class="bg-gradient-to-r from-violet-600 to-violet-700 hover:from-violet-500 hover:to-violet-600 text-white font-bold py-2.5 px-4 rounded-xl shadow-lg shadow-violet-600/30 transition-all flex items-center gap-2 text-xs cursor-pointer"
+                        title="Opciones de Alta y Carga de Docentes"
+                    >
+                        <span class="material-symbols-outlined text-sm">person_add</span>
+                        <span>Cargar Docentes</span>
+                        <span class="material-symbols-outlined text-xs">expand_more</span>
+                    </button>
+                    
+                    <div 
+                        id="dropdownCargarDocentes" 
+                        class="hidden absolute right-0 md:left-0 mt-2 w-72 rounded-2xl shadow-2xl glass-dropdown z-50 p-2 space-y-1 backdrop-blur-xl animate-in fade-in duration-150 border theme-border"
+                    >
+                        <div class="px-3 py-2 text-[11px] font-bold theme-text-muted uppercase tracking-wider border-b theme-border">
+                            Modalidad de Registro
+                        </div>
+                        
+                        <!-- Opción A: Alta individual paso a paso -->
+                        <a 
+                            href="{% url 'gestion:alta_docente' %}" 
+                            class="flex items-start gap-2.5 px-3 py-2.5 rounded-xl text-xs font-semibold dropdown-item transition-colors"
+                        >
+                            <span class="material-symbols-outlined text-base text-violet-500 shrink-0 mt-0.5">how_to_reg</span>
+                            <div>
+                                <span class="font-bold block text-xs">Alta de Docente</span>
+                                <span class="text-[11px] theme-text-muted font-normal block">Formulario de carga</span>
+                            </div>
+                        </a>
+
+                        <!-- Opción B: Carga masiva mediante archivo Excel -->
+                        <button 
+                            type="button" 
+                            onclick="abrirModalImportarDocentes(); toggleDropdownCargarDocentes();" 
+                            class="w-full text-left flex items-start gap-2.5 px-3 py-2.5 rounded-xl text-xs font-semibold dropdown-item transition-colors cursor-pointer"
+                        >
+                            <span class="material-symbols-outlined text-base text-emerald-500 shrink-0 mt-0.5">upload_file</span>
+                            <div>
+                                <span class="font-bold block text-xs">Carga mediante Excel (.xlsx)</span>
+                                <span class="text-[11px] theme-text-muted font-normal block">Importar nómina completa en lote</span>
+                            </div>
+                        </button>
+                    </div>
+                </div>
+
+                <!-- Botón Volver a Estudiantes -->
+                <a href="{% url 'gestion:buscador' %}" class="inline-flex items-center justify-center gap-2 px-4 py-2.5 rounded-xl border theme-border theme-text-main font-bold text-xs hover:bg-indigo-500/10 transition-all cursor-pointer">
                     <span class="material-symbols-outlined text-sm">arrow_back</span>
-                    Volver a estudiantes
+                    <span>Volver a Estudiantes</span>
                 </a>
             </div>
         </div>
     </div>
 
-    <div class="glass-card p-6 rounded-2xl shadow-xl">
-        <form method="GET" action="{% url 'gestion:docentes' %}" class="flex flex-col md:flex-row gap-3">
-            <div class="relative flex-1">
-                <span class="material-symbols-outlined absolute left-3 top-1/2 -translate-y-1/2 theme-text-muted">search</span>
+    <!-- Filtros de Búsqueda -->
+    <div class="glass-card p-6 rounded-2xl shadow-xl relative z-10">
+        <form method="POST" action="{% url 'gestion:docentes' %}" id="buscadorDocentesForm" class="space-y-4">
+            {% csrf_token %}
+            <input type="hidden" name="page" id="pageInputDocentes" value="{{ page_obj.number }}">
+
+            <!-- Barra de Búsqueda Principal -->
+            <div class="relative">
+                <span class="absolute inset-y-0 left-0 flex items-center pl-4 pointer-events-none theme-text-muted">
+                    <span class="material-symbols-outlined">search</span>
+                </span>
                 <input
                     type="search"
                     name="q"
+                    id="searchDocenteInput"
                     value="{{ query }}"
-                    placeholder="Buscar por nombre, apellido, DNI, CUIL o título..."
-                    class="w-full rounded-xl py-3 pl-11 pr-4 text-sm"
+                    placeholder="Buscar por DNI, CUIL, Nombre, Apellido, Localidad o Título..."
+                    class="w-full pl-12 pr-28 py-3.5 rounded-2xl text-sm font-medium transition-all shadow-inner"
                     autocomplete="off"
                 >
+                <div class="absolute inset-y-0 right-1.5 flex items-center">
+                    <button type="submit" class="bg-indigo-600 hover:bg-indigo-500 text-white text-xs font-bold py-2 px-4 rounded-xl shadow-md transition-all cursor-pointer">
+                        Buscar
+                    </button>
+                </div>
             </div>
-            <button type="submit" class="bg-gradient-to-r from-violet-600 to-violet-700 hover:from-violet-500 hover:to-violet-600 text-white font-bold py-3 px-6 rounded-xl shadow-lg shadow-violet-600/30 transition-all flex items-center justify-center gap-2 text-sm">
-                <span class="material-symbols-outlined text-sm">search</span>
-                Buscar
-            </button>
-            {% if query %}
-            <a href="{% url 'gestion:docentes' %}" class="py-3 px-5 rounded-xl border theme-border theme-text-main font-bold text-sm text-center hover:bg-slate-500/10 transition-all">Limpiar</a>
-            {% endif %}
+
+            <!-- Filtros Combinados (Reutilizados de Estudiantes) -->
+            <div class="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-4 gap-3.5">
+                <!-- Filtro: Identidad de Género -->
+                <div>
+                    <label class="block text-[11px] font-bold uppercase tracking-wider theme-text-muted mb-1">Identidad de Género</label>
+                    <select name="genero" onchange="resetPageAndSubmitDocentes('Género')" class="w-full rounded-xl px-3 py-2 text-xs font-semibold cursor-pointer">
+                        <option value="">Todas las Identidades</option>
+                        {% for g_val, g_label in generos_choices %}
+                            <option value="{{ g_val }}" {% if g_val == genero_filtro %}selected{% endif %}>
+                                {{ g_label }} ({{ g_val }})
+                            </option>
+                        {% endfor %}
+                    </select>
+                </div>
+
+                <!-- Filtro: Nacionalidad -->
+                <div>
+                    <label class="block text-[11px] font-bold uppercase tracking-wider theme-text-muted mb-1">Nacionalidad</label>
+                    <select name="nacionalidad" onchange="resetPageAndSubmitDocentes('Nacionalidad')" class="w-full rounded-xl px-3 py-2 text-xs font-semibold cursor-pointer">
+                        <option value="">Todas las Nacionalidades</option>
+                        {% for nac in nacionalidades %}
+                            <option value="{{ nac }}" {% if nac == nacionalidad_filtro %}selected{% endif %}>
+                                {{ nac }}
+                            </option>
+                        {% endfor %}
+                    </select>
+                </div>
+
+                <!-- Filtro: Localidad -->
+                <div>
+                    <label class="block text-[11px] font-bold uppercase tracking-wider theme-text-muted mb-1">Localidad</label>
+                    <select name="localidad" onchange="resetPageAndSubmitDocentes('Localidad')" class="w-full rounded-xl px-3 py-2 text-xs font-semibold cursor-pointer">
+                        <option value="">Todas las Localidades</option>
+                        {% for loc in localidades %}
+                            <option value="{{ loc }}" {% if loc == localidad_filtro %}selected{% endif %}>
+                                {{ loc }}
+                            </option>
+                        {% endfor %}
+                    </select>
+                </div>
+
+                <!-- Filtro: Ordenamiento -->
+                <div>
+                    <label class="block text-[11px] font-bold uppercase tracking-wider theme-text-muted mb-1">Ordenar Por</label>
+                    <select name="orden" onchange="resetPageAndSubmitDocentes('Orden')" class="w-full rounded-xl px-3 py-2 text-xs font-semibold cursor-pointer">
+                        <option value="apellido" {% if orden_filtro == 'apellido' %}selected{% endif %}>Apellido (A-Z)</option>
+                        <option value="nombre" {% if orden_filtro == 'nombre' %}selected{% endif %}>Nombre (A-Z)</option>
+                        <option value="dni" {% if orden_filtro == 'dni' %}selected{% endif %}>N° DNI</option>
+                        <option value="titulo" {% if orden_filtro == 'titulo' %}selected{% endif %}>Título / Matrícula</option>
+                        <option value="localidad" {% if orden_filtro == 'localidad' %}selected{% endif %}>Localidad (A-Z)</option>
+                        <option value="nacionalidad" {% if orden_filtro == 'nacionalidad' %}selected{% endif %}>Nacionalidad (A-Z)</option>
+                        <option value="edad_asc" {% if orden_filtro == 'edad_asc' %}selected{% endif %}>Menor Edad</option>
+                        <option value="edad_desc" {% if orden_filtro == 'edad_desc' %}selected{% endif %}>Mayor Edad</option>
+                    </select>
+                </div>
+            </div>
+
+            <!-- Controles de Paginación y Limpieza -->
+            <div class="flex flex-wrap items-center justify-between gap-3 pt-3 border-t theme-border text-xs">
+                <div class="flex items-center gap-2.5 theme-text-main">
+                    <span class="theme-text-muted font-medium">Mostrar por página:</span>
+                    <select name="page_size" onchange="resetPageAndSubmitDocentes('Cantidad por página')" class="min-w-[85px] pl-3.5 pr-8 py-1.5 rounded-xl text-xs font-bold cursor-pointer text-violet-500 shadow-sm">
+                        <option value="10" {% if page_size == 10 %}selected{% endif %}>10</option>
+                        <option value="25" {% if page_size == 25 %}selected{% endif %}>25</option>
+                        <option value="50" {% if page_size == 50 %}selected{% endif %}>50</option>
+                        <option value="100" {% if page_size == 100 %}selected{% endif %}>100</option>
+                    </select>
+                </div>
+
+                <div class="flex items-center gap-2">
+                    {% if query or genero_filtro or nacionalidad_filtro or localidad_filtro or orden_filtro != 'apellido' %}
+                    <button type="button" onclick="limpiarFiltrosDocentes()" class="bg-slate-500/10 hover:bg-slate-500/20 theme-text-main font-semibold py-2 px-3.5 rounded-xl border theme-border transition-all flex items-center gap-1 cursor-pointer" title="Restablecer Filtros">
+                        <span class="material-symbols-outlined text-sm">restart_alt</span>
+                        <span>Limpiar</span>
+                    </button>
+                    {% endif %}
+
+                    <button type="submit" class="bg-gradient-to-r from-violet-600 to-violet-700 hover:from-violet-500 hover:to-violet-600 text-white font-bold py-2 px-5 rounded-xl shadow-lg shadow-violet-600/30 transition-all flex items-center gap-2 cursor-pointer">
+                        <span class="material-symbols-outlined text-sm">filter_list</span>
+                        <span>Aplicar Filtros</span>
+                    </button>
+                </div>
+            </div>
         </form>
     </div>
 
-    <div class="glass-card rounded-2xl shadow-xl overflow-hidden">
-        <div class="p-5 border-b theme-border flex items-center justify-between gap-3">
-            <div>
-                <h2 class="font-black text-lg theme-text-main">Docentes encontrados</h2>
-                <p class="text-xs theme-text-muted mt-1">{{ total_resultados }} resultado{{ total_resultados|pluralize }}.</p>
+    <!-- Resultados -->
+    <div class="glass-card rounded-2xl overflow-hidden shadow-2xl relative z-0">
+        <!-- Encabezado Colapsable con Transición Suave -->
+        <div 
+            onclick="toggleResultadosDocentes()" 
+            class="px-6 py-4 border-b theme-border flex flex-wrap items-center justify-between gap-2 cursor-pointer hover:bg-slate-500/5 transition-colors select-none"
+            title="Hacer clic para contraer o expandir los resultados"
+        >
+            <div class="flex items-center gap-3">
+                <button 
+                    type="button" 
+                    id="btnToggleResultadosDocentes"
+                    class="w-7 h-7 rounded-lg bg-violet-500/10 hover:bg-violet-500/20 text-violet-500 flex items-center justify-center transition-transform duration-300 cursor-pointer"
+                    aria-label="Contraer o expandir resultados"
+                >
+                    <span class="material-symbols-outlined text-lg transition-transform duration-300" id="iconToggleResultadosDocentes">expand_more</span>
+                </button>
+                <h3 class="text-base font-bold flex items-center gap-2 theme-text-main">
+                    <span class="material-symbols-outlined text-violet-500">school</span>
+                    <span>Docentes Registrados</span>
+                </h3>
+                <p class="text-xs theme-text-muted">{{ total_resultados }} resultado{{ total_resultados|pluralize }}.</p>
             </div>
-            <span class="material-symbols-outlined text-violet-500 text-2xl">school</span>
+            
+            {% if total_resultados > 0 %}
+            <span class="text-xs theme-text-muted">
+                Mostrando <strong class="text-violet-500">{{ page_obj.start_index }}</strong> a <strong class="text-violet-500">{{ page_obj.end_index }}</strong> de {{ total_resultados }} docentes
+            </span>
+            {% endif %}
         </div>
 
-        {% if docentes %}
-        <div class="overflow-x-auto">
-            <table class="w-full text-sm">
-                <thead class="theme-table-header">
-                    <tr>
-                        <th class="text-left px-5 py-4 font-bold">Apellido y nombre</th>
-                        <th class="text-left px-5 py-4 font-bold">DNI</th>
-                        <th class="text-left px-5 py-4 font-bold">CUIL</th>
-                        <th class="text-left px-5 py-4 font-bold">Título / Matrícula</th>
-                        <th class="text-left px-5 py-4 font-bold">Localidad</th>
-                    </tr>
-                </thead>
-                <tbody class="theme-table-divide divide-y">
-                    {% for docente in docentes %}
-                    <tr class="theme-table-row">
-                        <td class="px-5 py-4 theme-text-main font-semibold">
-                            {{ docente.persona.apellido }}, {{ docente.persona.nombre }}
-                        </td>
-                        <td class="px-5 py-4 theme-text-muted">{{ docente.persona.dni }}</td>
-                        <td class="px-5 py-4 theme-text-muted">{{ docente.persona.cuil|default:'-' }}</td>
-                        <td class="px-5 py-4 theme-text-muted">{{ docente.titulo_mn|default:'Sin registrar' }}</td>
-                        <td class="px-5 py-4 theme-text-muted">{{ docente.persona.localidad|default:'Sin registrar' }}</td>
-                    </tr>
+        <!-- Contenedor con Animación Suave de Despliegue -->
+        <div id="contenedorResultadosDocentes" class="grid transition-all duration-300 ease-in-out" style="grid-template-rows: 1fr; opacity: 1;">
+            <div class="overflow-hidden">
+                {% if docentes %}
+                <div class="w-full overflow-x-auto">
+                    <table class="w-full text-left text-sm min-w-[950px]">
+                        <thead class="theme-table-header uppercase text-[11px] tracking-wider font-bold border-b theme-border">
+                            <tr>
+                                <th class="py-3.5 px-4 min-w-[160px]">DNI / CUIL</th>
+                                <th class="py-3.5 px-4 min-w-[220px]">Docente</th>
+                                <th class="py-3.5 px-4 min-w-[240px]">Título / Matrícula</th>
+                                <th class="py-3.5 px-3 text-center min-w-[90px]">Edad</th>
+                                <th class="py-3.5 px-4 min-w-[160px]">Localidad</th>
+                                <th class="py-3.5 px-4 text-center min-w-[180px]">Acciones</th>
+                            </tr>
+                        </thead>
+                        <tbody class="theme-table-divide font-medium">
+                            {% for docente in docentes %}
+                            <tr class="theme-table-row transition-colors group">
+                                <!-- DNI / CUIL -->
+                                <td class="py-3.5 px-4 font-mono whitespace-nowrap">
+                                    <div class="text-violet-500 font-bold text-sm">{{ docente.dni_formateado }}</div>
+                                    <div class="text-[11px] theme-text-muted font-sans font-medium">CUIL: {{ docente.cuil_formateado|default:'-' }}</div>
+                                </td>
+
+                                <!-- Docente -->
+                                <td class="py-3.5 px-4">
+                                    <div class="font-bold text-sm theme-text-main group-hover:text-violet-500 transition-colors">
+                                        {{ docente.persona.apellido }}, {{ docente.persona.nombre }}
+                                    </div>
+                                    <div class="text-xs theme-text-muted truncate max-w-[220px]">
+                                        {{ docente.persona.mail|default:"-" }}
+                                    </div>
+                                </td>
+
+                                <!-- Título / Matrícula -->
+                                <td class="py-3.5 px-4">
+                                    <span class="text-xs px-2.5 py-1 rounded-lg bg-violet-500/15 text-violet-400 border border-violet-500/30 font-semibold inline-block">
+                                        {{ docente.titulo_mn|default:'Sin título/matrícula registrada' }}
+                                    </span>
+                                </td>
+
+                                <!-- Edad -->
+                                <td class="py-3.5 px-3 text-center font-bold theme-text-main">
+                                    {% if docente.persona.edad is not None %}
+                                        <span>{{ docente.persona.edad }} <span class="text-[10px] theme-text-muted font-normal">años</span></span>
+                                    {% else %}
+                                        <span class="theme-text-muted text-xs italic">-</span>
+                                    {% endif %}
+                                </td>
+
+                                <!-- Localidad -->
+                                <td class="py-3.5 px-4 text-xs theme-text-muted">
+                                    {{ docente.persona.localidad|default:'-' }}
+                                </td>
+
+                                <!-- Acciones -->
+                                <td class="py-3.5 px-4 text-center whitespace-nowrap">
+                                    <div class="flex items-center justify-center gap-1.5">
+                                        <button 
+                                            type="button" 
+                                            data-dni="{{ docente.persona.dni }}"
+                                            onclick="cargarExpedienteDocente(this.dataset.dni)"
+                                            class="inline-flex items-center gap-1 bg-violet-500/15 hover:bg-violet-500/25 text-violet-500 border border-violet-500/30 text-xs font-bold py-1.5 px-2.5 rounded-xl transition-all hover:scale-105 cursor-pointer"
+                                            title="Ver Ficha y Expediente Docente"
+                                        >
+                                            <span class="material-symbols-outlined text-xs">folder_shared</span>
+                                            <span>Expediente</span>
+                                        </button>
+                                        <button 
+                                            type="button"
+                                            data-dni="{{ docente.persona.dni }}"
+                                            onclick="abrirModalEditar('docente', this.dataset.dni)"
+                                            class="inline-flex items-center gap-1 bg-amber-500/15 hover:bg-amber-500/25 text-amber-500 border border-amber-500/30 text-xs font-bold py-1.5 px-2.5 rounded-xl transition-all hover:scale-105 cursor-pointer"
+                                            title="Editar Docente"
+                                        >
+                                            <span class="material-symbols-outlined text-xs">edit</span>
+                                            <span>Editar</span>
+                                        </button>
+                                        <button 
+                                            type="button"
+                                            data-dni="{{ docente.persona.dni }}"
+                                            data-nombre="{{ docente.persona.apellido }}, {{ docente.persona.nombre }}"
+                                            onclick="abrirModalEliminar('docente', this.dataset.dni, this.dataset.nombre)"
+                                            class="inline-flex items-center gap-1 bg-rose-500/15 hover:bg-rose-500/25 text-rose-500 border border-rose-500/30 text-xs font-bold py-1.5 px-2.5 rounded-xl transition-all hover:scale-105 cursor-pointer"
+                                            title="Eliminar Docente"
+                                        >
+                                            <span class="material-symbols-outlined text-xs">delete</span>
+                                            <span>Borrar</span>
+                                        </button>
+                                    </div>
+                                </td>
+                            </tr>
+                            {% endfor %}
+                        </tbody>
+                    </table>
+                </div>
+
+        <!-- Paginación Completa -->
+        {% if page_obj.has_other_pages %}
+        <div class="px-6 py-4 border-t theme-border flex flex-wrap items-center justify-between gap-3" style="background: var(--card-inner-bg);">
+            <div class="text-xs theme-text-muted">
+                Página <strong class="theme-text-main">{{ page_obj.number }}</strong> de <strong class="theme-text-main">{{ page_obj.paginator.num_pages }}</strong>
+            </div>
+
+            <div class="flex items-center gap-1.5">
+                {% if page_obj.has_previous %}
+                <button type="button" data-page="1" onclick="irAPaginaDocentes(this.dataset.page)" class="p-2 rounded-lg bg-slate-500/10 hover:bg-slate-500/20 theme-text-main text-xs transition-colors cursor-pointer" title="Primera Página">
+                    <span class="material-symbols-outlined text-sm">first_page</span>
+                </button>
+                <button type="button" data-page="{{ page_obj.previous_page_number }}" onclick="irAPaginaDocentes(this.dataset.page)" class="px-3 py-1.5 rounded-lg bg-slate-500/10 hover:bg-slate-500/20 theme-text-main text-xs font-semibold transition-colors flex items-center gap-1 cursor-pointer">
+                    <span class="material-symbols-outlined text-sm">chevron_left</span>
+                    <span>Anterior</span>
+                </button>
+                {% endif %}
+
+                <div class="flex items-center gap-1 mx-1">
+                    {% for p in page_obj.paginator.page_range %}
+                        {% if p >= page_obj.number|add:"-2" and p <= page_obj.number|add:"2" %}
+                            {% if p == page_obj.number %}
+                            <span class="w-8 h-8 rounded-lg bg-violet-600 text-white font-bold text-xs flex items-center justify-center shadow-md shadow-violet-600/30">
+                                {{ p }}
+                            </span>
+                            {% else %}
+                            <button type="button" data-page="{{ p }}" onclick="irAPaginaDocentes(this.dataset.page)" class="w-8 h-8 rounded-lg bg-slate-500/10 hover:bg-slate-500/20 theme-text-main text-xs font-medium transition-colors cursor-pointer">
+                                {{ p }}
+                            </button>
+                            {% endif %}
+                        {% endif %}
                     {% endfor %}
-                </tbody>
-            </table>
+                </div>
+
+                {% if page_obj.has_next %}
+                <button type="button" data-page="{{ page_obj.next_page_number }}" onclick="irAPaginaDocentes(this.dataset.page)" class="px-3 py-1.5 rounded-lg bg-slate-500/10 hover:bg-slate-500/20 theme-text-main text-xs font-semibold transition-colors flex items-center gap-1 cursor-pointer">
+                    <span>Siguiente</span>
+                    <span class="material-symbols-outlined text-sm">chevron_right</span>
+                </button>
+                <button type="button" data-page="{{ page_obj.paginator.num_pages }}" onclick="irAPaginaDocentes(this.dataset.page)" class="p-2 rounded-lg bg-slate-500/10 hover:bg-slate-500/20 theme-text-main text-xs transition-colors cursor-pointer" title="Última Página">
+                    <span class="material-symbols-outlined text-sm">last_page</span>
+                </button>
+                {% endif %}
+            </div>
         </div>
+        {% endif %}
+
         {% else %}
         <div class="p-12 text-center">
             <span class="material-symbols-outlined text-5xl theme-text-muted mb-3">person_search</span>
             <h3 class="font-black text-lg theme-text-main">No se encontraron docentes</h3>
-            <p class="text-sm theme-text-muted mt-1">Probá con otro nombre, apellido, DNI, CUIL o título.</p>
+            <p class="text-sm theme-text-muted mt-1">Probá ajustando los filtros de búsqueda, localidad o identidad de género.</p>
         </div>
         {% endif %}
-
-        {% if page_obj.has_other_pages %}
-        <div class="p-5 border-t theme-border flex items-center justify-between gap-3">
-            <span class="text-xs theme-text-muted">Página {{ page_obj.number }} de {{ page_obj.paginator.num_pages }}</span>
-            <div class="flex gap-2">
-                {% if page_obj.has_previous %}
-                <a href="?q={{ query|urlencode }}&page={{ page_obj.previous_page_number }}" class="px-3 py-2 rounded-lg border theme-border theme-text-main text-xs font-bold">Anterior</a>
-                {% endif %}
-                {% if page_obj.has_next %}
-                <a href="?q={{ query|urlencode }}&page={{ page_obj.next_page_number }}" class="px-3 py-2 rounded-lg border theme-border theme-text-main text-xs font-bold">Siguiente</a>
-                {% endif %}
             </div>
         </div>
-        {% endif %}
+    </div>
+</div>
+
+<!-- Modal Expediente Detallado de Docente -->
+<div id="modalExpedienteDocente" class="fixed inset-0 z-[9999] hidden flex items-center justify-center p-3 md:p-6 bg-black/75 backdrop-blur-md">
+    <div class="glass-modal w-full max-w-4xl rounded-3xl overflow-hidden max-h-[92vh] flex flex-col shadow-2xl border theme-border animate-in zoom-in-95 duration-200">
+        
+        <!-- Encabezado Modal -->
+        <div class="px-5 py-4 border-b theme-border flex items-center justify-between gap-3" style="background: var(--header-bg);">
+            <div class="flex items-center gap-3 min-w-0">
+                <div class="w-10 h-10 shrink-0 rounded-xl bg-violet-600 flex items-center justify-center text-white font-black text-xl shadow-lg shadow-violet-600/30">
+                    <span class="material-symbols-outlined">badge</span>
+                </div>
+                <div class="min-w-0">
+                    <h3 id="modalDocenteNombre" class="text-base md:text-lg font-black theme-text-main leading-tight break-words">Cargando expediente docente...</h3>
+                    <div id="modalDocenteDniCuil" class="text-xs text-violet-500 font-mono font-bold flex flex-wrap items-center gap-x-2 gap-y-0.5 mt-0.5">
+                        <span>DNI: -</span> <span>•</span> <span>CUIL: -</span> <span>•</span> <span>Título: -</span>
+                    </div>
+                </div>
+            </div>
+            <button type="button" onclick="cerrarModalDocente()" class="theme-text-muted hover:text-violet-500 p-2 rounded-lg hover:bg-violet-500/10 transition-colors cursor-pointer shrink-0">
+                <span class="material-symbols-outlined">close</span>
+            </button>
+        </div>
+
+        <!-- Contenido Modal -->
+        <div id="modalDocenteContent" class="p-5 md:p-6 overflow-y-auto space-y-6 flex-1 theme-text-main">
+            <div class="text-center py-12">
+                <div class="inline-block animate-spin rounded-full h-10 w-10 border-4 border-violet-500 border-t-transparent"></div>
+                <p class="text-sm theme-text-muted mt-3 font-medium">Obteniendo expediente completo del docente...</p>
+            </div>
+        </div>
+
+        <!-- Pie Modal -->
+        <div class="px-5 py-3.5 border-t theme-border flex items-center justify-between gap-3" style="background: var(--header-bg);">
+            <a 
+                id="btnImprimirFichaDocente"
+                href="#" 
+                target="_blank" 
+                class="inline-flex items-center gap-2 bg-slate-500/10 hover:bg-slate-500/20 theme-text-main text-xs font-bold py-2 px-3.5 rounded-xl border theme-border transition-all cursor-pointer"
+            >
+                <span class="material-symbols-outlined text-sm">print</span>
+                <span>Imprimir Ficha</span>
+            </a>
+            <button type="button" onclick="cerrarModalDocente()" class="bg-violet-600 hover:bg-violet-500 text-white text-xs font-bold py-2 px-5 rounded-xl transition-all cursor-pointer">
+                Cerrar
+            </button>
+        </div>
     </div>
 </div>
 
@@ -148,9 +461,7 @@
                 </div>
             </div>
 
-            <div id="panelResultadoImportacionDocentes" class="hidden rounded-2xl p-4 space-y-3 text-xs border" style="background: var(--card-inner-bg); border-color: var(--card-inner-border);">
-                <!-- Contenido inyectado dinámicamente -->
-            </div>
+            <div id="panelResultadoImportacionDocentes" class="hidden rounded-2xl p-4 space-y-3 text-xs border" style="background: var(--card-inner-bg); border-color: var(--card-inner-border);"></div>
 
             <div class="flex items-center justify-end gap-3 pt-2">
                 <button
@@ -174,6 +485,46 @@
 </div>
 
 <script>
+    function toggleDropdownCargarDocentes() {
+        var menu = document.getElementById('dropdownCargarDocentes');
+        if (menu) menu.classList.toggle('hidden');
+    }
+
+    document.addEventListener('click', function(e) {
+        var container = document.getElementById('dropdownCargarDocentesContainer');
+        var menu = document.getElementById('dropdownCargarDocentes');
+        if (container && menu && !container.contains(e.target)) {
+            menu.classList.add('hidden');
+        }
+    });
+
+    function resetPageAndSubmitDocentes(motivo) {
+        document.getElementById('pageInputDocentes').value = '1';
+        if (typeof window.mostrarPantallaCargaGlobal === 'function') {
+            window.mostrarPantallaCargaGlobal('Aplicando filtros...', 'Actualizando nómina de docentes según ' + (motivo || 'tu selección') + '.');
+        }
+        document.getElementById('buscadorDocentesForm').submit();
+    }
+
+    function irAPaginaDocentes(num) {
+        document.getElementById('pageInputDocentes').value = num;
+        if (typeof window.mostrarPantallaCargaGlobal === 'function') {
+            window.mostrarPantallaCargaGlobal('Cargando página...', 'Accediendo a la página ' + num + ' de docentes.');
+        }
+        document.getElementById('buscadorDocentesForm').submit();
+    }
+
+    function limpiarFiltrosDocentes() {
+        if (typeof window.mostrarPantallaCargaGlobal === 'function') {
+            window.mostrarPantallaCargaGlobal('Restableciendo filtros...', 'Recuperando nómina completa de docentes.');
+        }
+        const form = document.getElementById('buscadorDocentesForm');
+        form.querySelectorAll('input[type="text"], input[type="search"]').forEach(i => i.value = '');
+        form.querySelectorAll('select').forEach(s => s.selectedIndex = 0);
+        document.getElementById('pageInputDocentes').value = '1';
+        form.submit();
+    }
+
     function abrirModalImportarDocentes() {
         const modal = document.getElementById('modalImportarDocentes');
         const panel = document.getElementById('panelResultadoImportacionDocentes');
@@ -282,5 +633,178 @@
             panel.innerHTML = '<div class="text-rose-500 font-bold">Error de conexión: ' + err + '</div>';
         });
     }
+
+    function toggleResultadosDocentes() {
+        const cont = document.getElementById('contenedorResultadosDocentes');
+        const icon = document.getElementById('iconToggleResultadosDocentes');
+        if (!cont || !icon) return;
+
+        const isCollapsed = cont.dataset.collapsed === 'true';
+        if (isCollapsed) {
+            cont.dataset.collapsed = 'false';
+            cont.style.gridTemplateRows = '1fr';
+            cont.style.opacity = '1';
+            icon.style.transform = 'rotate(0deg)';
+            icon.innerText = 'expand_more';
+        } else {
+            cont.dataset.collapsed = 'true';
+            cont.style.gridTemplateRows = '0fr';
+            cont.style.opacity = '0';
+            icon.style.transform = 'rotate(-90deg)';
+            icon.innerText = 'chevron_right';
+        }
+    }
+
+    function cargarExpedienteDocente(dni) {
+        const modal = document.getElementById('modalExpedienteDocente');
+        const modalContent = document.getElementById('modalDocenteContent');
+        const modalNombre = document.getElementById('modalDocenteNombre');
+        const modalDniCuil = document.getElementById('modalDocenteDniCuil');
+        const btnImprimir = document.getElementById('btnImprimirFichaDocente');
+        if (btnImprimir) {
+            btnImprimir.href = '/docente/' + encodeURIComponent(dni) + '/imprimir/';
+        }
+
+        modal.classList.remove('hidden');
+
+        fetch('/api/docente/' + dni + '/')
+            .then(res => res.json())
+            .then(data => {
+                const p = data.personal;
+                const r = data.resumen_docente;
+
+                modalNombre.innerText = p.nombre_completo;
+                modalDniCuil.innerHTML = '<span><strong>DNI:</strong> ' + p.dni + '</span>' +
+                    '<span>•</span>' +
+                    '<span><strong>CUIL:</strong> ' + (p.cuil || '-') + '</span>' +
+                    '<span>•</span>' +
+                    '<span><strong>Título:</strong> ' + p.titulo_mn + '</span>';
+
+                let carrerasHtml = r.carreras.map(c => 
+                    '<span class="px-3 py-1.5 rounded-lg bg-violet-500/15 text-violet-400 border border-violet-500/30 text-xs font-bold break-words">' + c + '</span>'
+                ).join(' ');
+
+                let comisionesRows = data.comisiones.map(c => {
+                    return '<tr class="theme-table-row">' +
+                        '<td class="py-3 px-4 min-w-[200px]">' +
+                        '<div class="font-bold text-xs md:text-sm theme-text-main break-words">' + c.materia + '</div>' +
+                        '<div class="text-[11px] theme-text-muted break-words">' + c.carrera + ' (' + c.anio_carrera + '° Año)</div>' +
+                        '</td>' +
+                        '<td class="py-3 px-4 text-xs font-mono theme-text-muted break-words">' +
+                        '<span class="font-bold text-violet-400">' + c.comision + '</span>' +
+                        '<div class="text-[10px] text-slate-400">Turno: ' + c.turno + ' | Div: ' + c.division + '</div>' +
+                        '</td>' +
+                        '<td class="py-3 px-4 text-center whitespace-nowrap">' +
+                        '<span class="px-2.5 py-1 rounded-full text-xs bg-violet-500/20 text-violet-400 border border-violet-500/40 font-bold">' + c.rol + '</span>' +
+                        '</td>' +
+                        '<td class="py-3 px-4 text-center font-mono whitespace-nowrap">' +
+                        '<span class="font-bold text-indigo-400 text-sm">' + c.alumnos_inscriptos + '</span>' +
+                        '</td>' +
+                        '</tr>';
+                }).join('');
+
+                modalContent.innerHTML = '<div class="p-4 md:p-5 rounded-2xl space-y-3.5" style="background: var(--card-inner-bg); border: 1px solid var(--card-inner-border);">' +
+                    '<div class="text-xs theme-text-muted font-bold uppercase tracking-wider border-b pb-2" style="border-color: var(--card-inner-border);">' +
+                    'Filiación y Datos Personales del Docente' +
+                    '</div>' +
+                    '<div class="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 gap-3.5 text-xs">' +
+                    '<div class="space-y-0.5">' +
+                    '<span class="theme-text-muted block text-[11px] font-semibold">Fecha de Nacimiento:</span>' +
+                    '<span class="font-bold theme-text-main text-xs">' + (p.fecha_nacimiento || '-') + '</span>' +
+                    '</div>' +
+                    '<div class="space-y-0.5">' +
+                    '<span class="theme-text-muted block text-[11px] font-semibold">Edad:</span>' +
+                    '<span class="font-bold text-violet-400 text-xs">' + (p.edad ? p.edad + ' años' : '-') + '</span>' +
+                    '</div>' +
+                    '<div class="space-y-0.5">' +
+                    '<span class="theme-text-muted block text-[11px] font-semibold">Identidad de Género:</span>' +
+                    '<span class="font-bold theme-text-main text-xs">' + (p.genero_desc || '-') + ' (' + (p.genero_sigla || 'N') + ')</span>' +
+                    '</div>' +
+                    '<div class="space-y-0.5">' +
+                    '<span class="theme-text-muted block text-[11px] font-semibold">Nacionalidad:</span>' +
+                    '<span class="font-bold theme-text-main text-xs">' + (p.nacionalidad || '-') + '</span>' +
+                    '</div>' +
+                    '<div class="space-y-0.5">' +
+                    '<span class="theme-text-muted block text-[11px] font-semibold">Localidad:</span>' +
+                    '<span class="font-bold theme-text-main text-xs break-words">' + (p.localidad || '-') + '</span>' +
+                    '</div>' +
+                    '<div class="space-y-0.5">' +
+                    '<span class="theme-text-muted block text-[11px] font-semibold">Teléfono / Celular:</span>' +
+                    '<span class="font-bold theme-text-main text-xs font-mono">' + (p.telefono || '-') + '</span>' +
+                    '</div>' +
+                    '<div class="space-y-0.5 sm:col-span-2 md:col-span-2">' +
+                    '<span class="theme-text-muted block text-[11px] font-semibold">Domicilio:</span>' +
+                    '<span class="font-bold theme-text-main text-xs break-words leading-tight">' + (p.domicilio || '-') + '</span>' +
+                    '</div>' +
+                    '<div class="space-y-0.5 sm:col-span-2 md:col-span-1">' +
+                    '<span class="theme-text-muted block text-[11px] font-semibold">Correo Electrónico:</span>' +
+                    '<span class="font-bold theme-text-main text-xs break-all leading-tight">' + (p.mail || '-') + '</span>' +
+                    '</div>' +
+                    '<div class="space-y-0.5 sm:col-span-3">' +
+                    '<span class="theme-text-muted block text-[11px] font-semibold">Título Profesional / Matrícula:</span>' +
+                    '<span class="font-bold text-violet-400 text-xs break-words leading-tight">' + (p.titulo_mn || '-') + '</span>' +
+                    '</div>' +
+                    '</div>' +
+                    '</div>' +
+                    '<div class="grid grid-cols-2 md:grid-cols-4 gap-3">' +
+                    '<div class="p-3.5 rounded-xl text-center" style="background: var(--stat-card-bg); border: 1px solid var(--stat-card-border);">' +
+                    '<div class="text-[10px] theme-text-muted font-bold uppercase tracking-wider">Comisiones</div>' +
+                    '<div class="text-xl font-black text-violet-500 mt-0.5">' + r.total_comisiones + '</div>' +
+                    '</div>' +
+                    '<div class="p-3.5 rounded-xl text-center" style="background: var(--stat-card-bg); border: 1px solid var(--stat-card-border);">' +
+                    '<div class="text-[10px] theme-text-muted font-bold uppercase tracking-wider">Materias</div>' +
+                    '<div class="text-xl font-black text-indigo-500 mt-0.5">' + r.total_materias + '</div>' +
+                    '</div>' +
+                    '<div class="p-3.5 rounded-xl text-center" style="background: var(--stat-card-bg); border: 1px solid var(--stat-card-border);">' +
+                    '<div class="text-[10px] theme-text-muted font-bold uppercase tracking-wider">Carreras</div>' +
+                    '<div class="text-xl font-black text-emerald-500 mt-0.5">' + r.carreras.length + '</div>' +
+                    '</div>' +
+                    '<div class="p-3.5 rounded-xl text-center" style="background: var(--stat-card-bg); border: 1px solid var(--stat-card-border);">' +
+                    '<div class="text-[10px] theme-text-muted font-bold uppercase tracking-wider">Alumnos a Cargo</div>' +
+                    '<div class="text-xl font-black text-violet-400 mt-0.5">' + r.total_alumnos_a_cargo + '</div>' +
+                    '</div>' +
+                    '</div>' +
+                    '<div class="flex items-center gap-2 flex-wrap">' +
+                    '<span class="text-xs theme-text-muted font-bold uppercase tracking-wider">Carreras en las que dicta clases:</span>' +
+                    '<div class="flex flex-wrap gap-2">' +
+                    (carrerasHtml || '<span class="text-xs theme-text-muted">Sin comisiones asignadas</span>') +
+                    '</div>' +
+                    '</div>' +
+                    '<div class="rounded-xl overflow-hidden" style="background: var(--stat-card-bg); border: 1px solid var(--stat-card-border);">' +
+                    '<div class="px-4 py-2.5 border-b theme-border font-bold text-xs flex items-center justify-between theme-text-main" style="background: var(--header-bg);">' +
+                    '<span>Comisiones y Espacios Curriculares Asignados</span>' +
+                    '<span class="text-[11px] theme-text-muted font-normal">Carga Académica Docente</span>' +
+                    '</div>' +
+                    '<div class="overflow-x-auto">' +
+                    '<table class="w-full text-left text-xs">' +
+                    '<thead class="theme-table-header uppercase text-[10px] tracking-wider font-semibold border-b theme-border">' +
+                    '<tr>' +
+                    '<th class="py-2.5 px-4 min-w-[200px]">Materia / Carrera</th>' +
+                    '<th class="py-2.5 px-4 min-w-[140px]">Comisión / Turno / Div.</th>' +
+                    '<th class="py-2.5 px-4 text-center min-w-[90px]">Rol Docente</th>' +
+                    '<th class="py-2.5 px-4 text-center min-w-[90px]">Inscriptos</th>' +
+                    '</tr>' +
+                    '</thead>' +
+                    '<tbody class="theme-table-divide font-medium">' +
+                    (comisionesRows || '<tr><td colspan="4" class="py-6 text-center theme-text-muted">Sin comisiones asignadas actualmente.</td></tr>') +
+                    '</tbody>' +
+                    '</table>' +
+                    '</div>' +
+                    '</div>';
+            })
+            .catch(err => {
+                modalContent.innerHTML = '<div class="text-center py-8 space-y-2">' +
+                    '<span class="material-symbols-outlined text-4xl text-rose-500">error</span>' +
+                    '<p class="text-sm font-bold text-rose-400">No se pudo cargar el expediente del docente.</p>' +
+                    '</div>';
+            });
+    }
+
+    function cerrarModalDocente() {
+        const modal = document.getElementById('modalExpedienteDocente');
+        if (modal) modal.classList.add('hidden');
+    }
 </script>
+
+{% include 'gestion/includes/modal_crud.html' %}
 {% endblock %}

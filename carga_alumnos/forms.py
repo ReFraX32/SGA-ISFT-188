@@ -68,7 +68,7 @@ class AlumnoForm(forms.ModelForm):
         widget=forms.TextInput(attrs={
             'id': 'id_nacionalidad_otra',
             'class': 'w-full px-4 py-3 rounded-2xl text-sm font-medium border theme-border transition-all shadow-sm',
-            'placeholder': 'Escribí tu nacionalidad...',
+            'placeholder': 'Escribí la nacionalidad...',
             'list': 'lista-nacionalidades-mundo',
             'autocomplete': 'off',
         })
@@ -248,35 +248,15 @@ class AlumnoForm(forms.ModelForm):
 
     def clean_cuil(self) -> str:
         cuil_raw = str(self.cleaned_data.get('cuil', '')).strip()
-        if not cuil_raw:
-            raise forms.ValidationError("El número de CUIL es obligatorio.")
-
-        # Validación oficial ANSES: solo números y guiones opcionales
-        if not re.match(r'^[\d\-\s]+$', cuil_raw):
-            raise forms.ValidationError("El CUIL debe contener solo números y guiones.")
-
-        # Validación oficial ANSES (Módulo 11) para todos los alumnos (argentinos o extranjeros radicados)
-        cuil_limpio = re.sub(r'[^\d]', '', cuil_raw)
-        if len(cuil_limpio) != 11:
-            raise forms.ValidationError("El CUIL debe tener exactamente 11 números.")
-
-        prefijo = cuil_limpio[:2]
-        if prefijo not in ['20', '23', '24', '27']:
-            raise forms.ValidationError("El CUIL debe comenzar con 20, 23, 24 o 27.")
-
         dni_val = self.cleaned_data.get('dni', '')
-        if dni_val:
-            dni_digitos = re.sub(r'[^\d]', '', str(dni_val)).zfill(8)
-            cuil_dni_part = cuil_limpio[2:10]
-            if cuil_dni_part != dni_digitos:
-                raise forms.ValidationError("Los números centrales del CUIL no coinciden con el DNI ingresado.")
 
-        if not validar_algoritmo_cuil(cuil_limpio):
-            raise forms.ValidationError("El número de CUIL no es correcto. Por favor, revisá que esté bien escrito.")
-
-        cuil_formateado = f"{cuil_limpio[:2]}-{cuil_limpio[2:10]}-{cuil_limpio[10:]}"
+        from gestion.validaciones import validar_cuil_detallado
+        cuil_formateado, error_msg = validar_cuil_detallado(cuil_raw, dni_val=dni_val)
+        if error_msg:
+            raise forms.ValidationError(error_msg)
 
         # Verificar unicidad
+        cuil_limpio = re.sub(r'[^\d]', '', cuil_formateado)
         if Alumno.objects.filter(cuil=cuil_formateado).exists() or Alumno.objects.filter(cuil=cuil_limpio).exists():
             raise forms.ValidationError(f"Ya existe un alumno registrado con este CUIL ({cuil_formateado}).")
 

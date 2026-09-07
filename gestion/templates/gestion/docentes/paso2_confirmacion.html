@@ -1,121 +1,120 @@
-{% extends "carga_alumnos/base.html" %}
+{% extends "gestion/base.html" %}
 
-{% block title %}Paso 2: Matriz de Datos y Confirmación — ISFT N° 188{% endblock %}
+{% block title %}Paso 2: Matriz de Docentes y Confirmación — ISFT N° 188{% endblock %}
 
-{% block modulo_content %}
+{% block content %}
 <div class="space-y-6 w-full max-w-7xl mx-auto">
 
     <!-- Indicador Visual de Flujo de Pasos -->
     <div class="glass-card p-4 rounded-2xl border theme-border flex items-center justify-center gap-3 sm:gap-6 shadow-md text-xs sm:text-sm">
-        <div class="flex items-center gap-2 text-emerald-500 font-semibold">
+        <a href="{% url 'gestion:alta_docente' %}" class="flex items-center gap-2 text-emerald-500 font-semibold hover:underline">
             <span class="step-bubble completed">
                 <span class="material-symbols-outlined text-sm">check</span>
             </span>
             <span>Paso 1: Carga de Datos</span>
-        </div>
+        </a>
         <div class="w-10 sm:w-16 h-0.5 bg-emerald-500/40"></div>
-        <div class="flex items-center gap-2 text-indigo-500 font-bold">
+        <div class="flex items-center gap-2 text-violet-500 font-bold">
             <span class="step-bubble active">2</span>
-            <span>Paso 2: Matriz de Datos y Confirmación</span>
+            <span>Paso 2: Matriz de Docentes y Confirmación</span>
         </div>
     </div>
 
     <!-- Encabezado de la Matriz de Previsualización -->
     <div class="glass-card rounded-3xl p-5 sm:p-6 border theme-border shadow-xl flex flex-col md:flex-row items-start md:items-center justify-between gap-4">
         <div class="flex items-center gap-3.5">
-            <div class="w-12 h-12 rounded-2xl bg-gradient-to-tr from-indigo-600 to-purple-600 text-white flex shrink-0 items-center justify-center shadow-lg shadow-indigo-600/25">
+            <div class="w-12 h-12 rounded-2xl bg-gradient-to-tr from-violet-600 to-indigo-600 text-white flex shrink-0 items-center justify-center shadow-lg shadow-violet-600/25">
                 <span class="material-symbols-outlined text-2xl">table_chart</span>
             </div>
             <div>
                 <div class="flex items-center gap-2 flex-wrap">
                     <h3 class="text-base sm:text-lg font-black theme-text-main">
-                        Matriz de Alumnos a Confirmar
+                        Matriz de Docentes a Confirmar
                     </h3>
-                    <span class="badge-pill bg-indigo-500/15 border border-indigo-500/30 text-indigo-400 text-xs font-bold">
-                        {{ total_alumnos }} Alumno{% if total_alumnos != 1 %}s{% endif %} en Tanda
+                    <span class="badge-pill bg-violet-500/15 border border-violet-500/30 text-violet-400 text-xs font-bold">
+                        {{ total_docentes }} Docente{% if total_docentes != 1 %}s{% endif %} en Tanda
                     </span>
                 </div>
             </div>
         </div>
 
-        <!-- Botón rápido superior para Cargar Otro Alumno -->
-        <form method="post" action="{% url 'carga_alumnos:paso2_confirmacion' %}" class="shrink-0 w-full md:w-auto">
+        <!-- Botón superior para Cargar Otro Docente -->
+        <form method="post" action="{% url 'gestion:paso2_confirmacion_docentes' %}" class="shrink-0 w-full md:w-auto">
             {% csrf_token %}
             <button 
                 type="submit" 
                 name="accion" 
-                value="nuevo_alumno" 
-                id="btnTopCargarOtro"
-                class="w-full md:w-auto inline-flex items-center justify-center gap-2 px-4 py-2.5 rounded-2xl border border-purple-500/30 bg-purple-500/10 hover:bg-purple-500/20 text-purple-400 font-bold text-xs sm:text-sm transition-all cursor-pointer shadow-sm hover:scale-[1.02]"
-                title="Sumar otro alumno a esta misma matriz de carga"
+                value="nuevo_docente" 
+                id="btnTopCargarOtroDocente"
+                class="w-full md:w-auto inline-flex items-center justify-center gap-2 px-4 py-2.5 rounded-2xl border border-violet-500/30 bg-violet-500/10 hover:bg-violet-500/20 text-violet-400 font-bold text-xs sm:text-sm transition-all cursor-pointer shadow-sm hover:scale-[1.02]"
+                title="Sumar otro docente a esta misma matriz de carga"
             >
                 <span class="material-symbols-outlined text-base">person_add</span>
-                <span>Cargar Otro Alumno</span>
+                <span>Cargar Otro Docente</span>
             </button>
         </form>
     </div>
 
-    <!-- MATRIZ DE DATOS: LÍNEA COMPLETA VISIBLE SIN DESLIZAR (SIN SCROLL HORIZONTAL) -->
+    <!-- MATRIZ DE DATOS -->
     <div class="glass-card rounded-3xl border theme-border shadow-2xl overflow-hidden">
         
-        <!-- Barra de título de la matriz -->
         <div class="p-4 sm:px-6 border-b theme-border flex items-center justify-between bg-white/[0.02]">
             <div class="flex items-center gap-2">
-                <span class="material-symbols-outlined text-indigo-500 text-base">grid_view</span>
-                <h4 class="text-xs font-bold uppercase tracking-wider text-indigo-500">
-                    Matriz de Registros (Tanda Actual)
+                <span class="material-symbols-outlined text-violet-500 text-base">grid_view</span>
+                <h4 class="text-xs font-bold uppercase tracking-wider text-violet-500">
+                    Matriz de Registros Docentes (Tanda Actual)
                 </h4>
             </div>
         </div>
 
-        <!-- Tabla Matriz Adaptable al 100% del Ancho -->
-        <div class="w-full">
-            <table class="w-full text-left border-collapse table-auto" id="tablaMatrizAlumnos">
+        <div class="w-full overflow-x-auto">
+            <table class="w-full text-left border-collapse table-auto" id="tablaMatrizDocentes">
                 <thead>
-                    <tr class="border-b theme-border bg-white/[0.04] text-[11px] font-black uppercase tracking-wider text-indigo-400">
+                    <tr class="border-b theme-border bg-white/[0.04] text-[11px] font-black uppercase tracking-wider text-violet-400">
                         <th class="py-3.5 px-3 text-center w-10">#</th>
                         <th class="py-3.5 px-3">DNI / CUIL</th>
-                        <th class="py-3.5 px-3">Estudiante y Nacionalidad</th>
+                        <th class="py-3.5 px-3">Docente y Nacionalidad</th>
                         <th class="py-3.5 px-3">Nacimiento / Género</th>
                         <th class="py-3.5 px-3">Contacto (Email y Tel.)</th>
                         <th class="py-3.5 px-3">Domicilio y Localidad</th>
+                        <th class="py-3.5 px-3">Título / Matrícula</th>
                         <th class="py-3.5 px-3 text-center w-24">Acciones</th>
                     </tr>
                 </thead>
                 <tbody class="divide-y theme-table-divide text-xs">
-                    {% for al in alumnos_matriz %}
+                    {% for doc in docentes_matriz %}
                     <tr class="theme-table-row hover:bg-white/[0.04] transition-colors">
                         
                         <!-- Columna 1: # Fila -->
                         <td class="py-3 px-3 text-center align-middle">
-                            <span class="inline-flex items-center justify-center w-7 h-7 rounded-xl bg-indigo-500/10 border border-indigo-500/30 text-indigo-400 font-mono font-bold text-xs">
-                                {{ al.fila_num }}
+                            <span class="inline-flex items-center justify-center w-7 h-7 rounded-xl bg-violet-500/10 border border-violet-500/30 text-violet-400 font-mono font-bold text-xs">
+                                {{ doc.fila_num }}
                             </span>
                         </td>
 
-                        <!-- Columna 2: DNI y CUIL Oficiales (RENAPER / ANSES) -->
+                        <!-- Columna 2: DNI y CUIL -->
                         <td class="py-3 px-3 align-middle">
                             <div class="space-y-0.5">
-                                <div class="font-mono font-black text-xs sm:text-sm text-indigo-400 flex items-center gap-1">
-                                    <span class="material-symbols-outlined text-[13px] text-indigo-400/80">badge</span>
-                                    <span>{{ al.dni }}</span>
+                                <div class="font-mono font-black text-xs sm:text-sm text-violet-400 flex items-center gap-1">
+                                    <span class="material-symbols-outlined text-[13px] text-violet-400/80">badge</span>
+                                    <span>{{ doc.dni_formateado }}</span>
                                 </div>
-                                <div class="font-mono text-[11px] text-purple-400 font-semibold flex items-center gap-1">
-                                    <span class="text-[10px] uppercase tracking-wider text-purple-400/80 font-sans">CUIL:</span>
-                                    <span>{{ al.cuil }}</span>
+                                <div class="font-mono text-[11px] text-indigo-400 font-semibold flex items-center gap-1">
+                                    <span class="text-[10px] uppercase tracking-wider text-indigo-400/80 font-sans">CUIL:</span>
+                                    <span>{{ doc.cuil_formateado }}</span>
                                 </div>
                             </div>
                         </td>
 
-                        <!-- Columna 3: Estudiante (Apellido, Nombre y Nacionalidad) -->
+                        <!-- Columna 3: Docente (Apellido, Nombre y Nacionalidad) -->
                         <td class="py-3 px-3 align-middle">
                             <div class="space-y-1">
                                 <div class="font-black text-xs sm:text-sm theme-text-main leading-snug">
-                                    {{ al.apellido }}, {{ al.nombre }}
+                                    Prof. {{ doc.apellido }}, {{ doc.nombre }}
                                 </div>
-                                <span class="inline-flex items-center gap-1 badge-pill text-[10px] bg-purple-500/10 text-purple-400 border border-purple-500/30 font-semibold">
+                                <span class="inline-flex items-center gap-1 badge-pill text-[10px] bg-indigo-500/10 text-indigo-400 border border-indigo-500/30 font-semibold">
                                     <span class="material-symbols-outlined text-[11px]">public</span>
-                                    <span>{{ al.nacionalidad }}</span>
+                                    <span>{{ doc.nacionalidad|default:'Argentina' }}</span>
                                 </span>
                             </div>
                         </td>
@@ -125,11 +124,11 @@
                             <div class="space-y-1">
                                 <div class="font-mono text-xs font-bold theme-text-main flex items-center gap-1">
                                     <span class="material-symbols-outlined text-[13px] theme-text-muted">calendar_today</span>
-                                    <span>{{ al.fecha_nacimiento }}</span>
+                                    <span>{{ doc.fecha_nacimiento|default:'-' }}</span>
                                 </div>
-                                <span class="inline-flex items-center gap-1 badge-pill text-[10px] bg-indigo-500/10 text-indigo-400 border border-indigo-500/30 font-semibold">
+                                <span class="inline-flex items-center gap-1 badge-pill text-[10px] bg-violet-500/10 text-violet-400 border border-violet-500/30 font-semibold">
                                     <span class="material-symbols-outlined text-[11px]">person</span>
-                                    <span>{{ al.genero_humano }}</span>
+                                    <span>{{ doc.genero_humano }}</span>
                                 </span>
                             </div>
                         </td>
@@ -137,58 +136,65 @@
                         <!-- Columna 5: Contacto (Email y Teléfono) -->
                         <td class="py-3 px-3 align-middle">
                             <div class="space-y-0.5">
-                                <div class="text-xs font-semibold theme-text-main break-all flex items-center gap-1" title="{{ al.email }}">
-                                    <span class="material-symbols-outlined text-[13px] text-indigo-400 shrink-0">mail</span>
-                                    <span>{{ al.email }}</span>
+                                <div class="text-xs font-semibold theme-text-main break-all flex items-center gap-1" title="{{ doc.mail }}">
+                                    <span class="material-symbols-outlined text-[13px] text-violet-400 shrink-0">mail</span>
+                                    <span>{{ doc.mail|default:'-' }}</span>
                                 </div>
                                 <div class="font-mono text-[11px] font-bold theme-text-muted flex items-center gap-1">
                                     <span class="material-symbols-outlined text-[13px] text-emerald-400 shrink-0">call</span>
-                                    <span>{{ al.telefono }}</span>
+                                    <span>{{ doc.telefono_formateado }}</span>
                                 </div>
                             </div>
                         </td>
 
-                        <!-- Columna 6: Radicación y Domicilio (Dirección y Localidad) -->
+                        <!-- Columna 6: Domicilio y Localidad -->
                         <td class="py-3 px-3 align-middle">
                             <div class="space-y-1">
                                 <div class="text-xs font-medium theme-text-main leading-snug break-words flex items-start gap-1">
                                     <span class="material-symbols-outlined text-[13px] text-amber-400 shrink-0 mt-0.5">home</span>
-                                    <span>{{ al.direccion }}</span>
+                                    <span>{{ doc.domicilio|default:'-' }}</span>
                                 </div>
                                 <span class="inline-flex items-center gap-1 badge-pill text-[10px] bg-emerald-500/15 text-emerald-400 border border-emerald-500/30 font-bold">
                                     <span class="material-symbols-outlined text-[11px]">location_on</span>
-                                    <span>{{ al.localidad }}</span>
+                                    <span>{{ doc.localidad|default:'Sin registrar' }}</span>
                                 </span>
                             </div>
                         </td>
 
-                        <!-- Columna 7: Acciones por Fila -->
+                        <!-- Columna 7: Título / Matrícula -->
+                        <td class="py-3 px-3 align-middle">
+                            <span class="text-xs px-2.5 py-1 rounded-lg bg-violet-500/15 text-violet-400 border border-violet-500/30 font-semibold inline-block">
+                                {{ doc.titulo_mn|default:'Sin título/matrícula' }}
+                            </span>
+                        </td>
+
+                        <!-- Columna 8: Acciones por Fila -->
                         <td class="py-3 px-3 text-center align-middle">
                             <div class="flex items-center justify-center gap-1">
                                 <!-- Botón Modificar / Editar fila -->
-                                <form method="post" action="{% url 'carga_alumnos:paso2_confirmacion' %}" class="inline">
+                                <form method="post" action="{% url 'gestion:paso2_confirmacion_docentes' %}" class="inline">
                                     {% csrf_token %}
                                     <input type="hidden" name="accion" value="editar_fila">
-                                    <input type="hidden" name="fila_index" value="{{ al.fila_index }}">
+                                    <input type="hidden" name="fila_index" value="{{ doc.fila_index }}">
                                     <button 
                                         type="submit" 
-                                        class="p-1.5 rounded-xl border border-indigo-500/30 bg-indigo-500/10 text-indigo-400 hover:bg-indigo-500/25 transition-all cursor-pointer" 
-                                        title="Editar datos de {{ al.nombre }}"
+                                        class="p-1.5 rounded-xl border border-violet-500/30 bg-violet-500/10 text-violet-400 hover:bg-violet-500/25 transition-all cursor-pointer" 
+                                        title="Editar datos de {{ doc.nombre }}"
                                     >
                                         <span class="material-symbols-outlined text-sm">edit</span>
                                     </button>
                                 </form>
 
                                 <!-- Botón Eliminar de la matriz -->
-                                <form method="post" action="{% url 'carga_alumnos:paso2_confirmacion' %}" class="inline">
+                                <form method="post" action="{% url 'gestion:paso2_confirmacion_docentes' %}" class="inline">
                                     {% csrf_token %}
                                     <input type="hidden" name="accion" value="eliminar_fila">
-                                    <input type="hidden" name="fila_index" value="{{ al.fila_index }}">
+                                    <input type="hidden" name="fila_index" value="{{ doc.fila_index }}">
                                     <button 
                                         type="submit" 
-                                        onclick="return confirm('¿Quitar a {{ al.apellido }}, {{ al.nombre }} de la matriz?');"
+                                        onclick="return confirm('¿Quitar a {{ doc.apellido }}, {{ doc.nombre }} de la matriz?');"
                                         class="p-1.5 rounded-xl border border-rose-500/30 bg-rose-500/10 text-rose-400 hover:bg-rose-500/25 transition-all cursor-pointer" 
-                                        title="Quitar este alumno de la matriz"
+                                        title="Quitar este docente de la matriz"
                                     >
                                         <span class="material-symbols-outlined text-sm">delete</span>
                                     </button>
@@ -199,8 +205,8 @@
                     </tr>
                     {% empty %}
                     <tr>
-                        <td colspan="7" class="py-8 text-center theme-text-muted text-sm">
-                            No hay alumnos cargados en la matriz.
+                        <td colspan="8" class="py-8 text-center theme-text-muted text-sm">
+                            No hay docentes cargados en la matriz.
                         </td>
                     </tr>
                     {% endfor %}
@@ -211,36 +217,35 @@
     </div>
 
     <!-- PANEL PRINCIPAL DE ACCIONES -->
-    <form method="post" action="{% url 'carga_alumnos:paso2_confirmacion' %}" id="formPaso2">
+    <form method="post" action="{% url 'gestion:paso2_confirmacion_docentes' %}" id="formPaso2Docentes">
         {% csrf_token %}
         <div class="glass-card p-5 sm:p-6 rounded-3xl border theme-border shadow-xl flex flex-col lg:flex-row items-center justify-between gap-4">
             
-            <!-- Acciones de Edición, Carga Adicional y Descarte -->
             <div class="flex items-center gap-2.5 flex-wrap w-full lg:w-auto">
-                <!-- Modificar datos del último alumno -->
+                <!-- Modificar datos del último docente -->
                 <button 
                     type="submit" 
                     name="accion" 
                     value="modificar" 
-                    id="btnModificarDatos"
-                    class="flex-1 sm:flex-none inline-flex items-center justify-center gap-1.5 px-4 py-3 rounded-2xl border border-indigo-500/30 bg-indigo-500/10 hover:bg-indigo-500/20 text-indigo-400 font-bold text-xs sm:text-sm transition-all cursor-pointer shadow-sm"
-                    title="Editar datos del último alumno cargado"
+                    id="btnModificarDatosDocente"
+                    class="flex-1 sm:flex-none inline-flex items-center justify-center gap-1.5 px-4 py-3 rounded-2xl border border-violet-500/30 bg-violet-500/10 hover:bg-violet-500/20 text-violet-400 font-bold text-xs sm:text-sm transition-all cursor-pointer shadow-sm"
+                    title="Editar datos del último docente cargado"
                 >
                     <span class="material-symbols-outlined text-base">edit</span>
                     <span>Modificar Datos</span>
                 </button>
 
-                <!-- Cargar otro alumno (suma otro alumno a la matriz conservando los existentes) -->
+                <!-- Cargar otro docente -->
                 <button 
                     type="submit" 
                     name="accion" 
-                    value="nuevo_alumno" 
-                    id="btnCargarOtroAlumno"
-                    class="flex-1 sm:flex-none inline-flex items-center justify-center gap-1.5 px-4 py-3 rounded-2xl border border-purple-500/30 bg-purple-500/10 hover:bg-purple-500/20 text-purple-400 font-bold text-xs sm:text-sm transition-all cursor-pointer shadow-sm hover:scale-[1.02]"
-                    title="Sumar otro alumno a esta misma matriz de carga"
+                    value="nuevo_docente" 
+                    id="btnCargarOtroDocenteBottom"
+                    class="flex-1 sm:flex-none inline-flex items-center justify-center gap-1.5 px-4 py-3 rounded-2xl border border-indigo-500/30 bg-indigo-500/10 hover:bg-indigo-500/20 text-indigo-400 font-bold text-xs sm:text-sm transition-all cursor-pointer shadow-sm hover:scale-[1.02]"
+                    title="Sumar otro docente a esta misma matriz de carga"
                 >
                     <span class="material-symbols-outlined text-base">person_add</span>
-                    <span>Cargar Otro Alumno</span>
+                    <span>Cargar Otro Docente</span>
                 </button>
 
                 <!-- Descartar tanda completa -->
@@ -249,24 +254,24 @@
                     name="accion" 
                     value="cancelar" 
                     class="inline-flex items-center justify-center gap-1 px-3 py-3 rounded-2xl border border-rose-500/30 bg-rose-500/10 hover:bg-rose-500/20 text-rose-400 font-semibold text-xs transition-all cursor-pointer"
-                    title="Descartar todos los alumnos de la matriz actual"
-                    onclick="return confirm('¿Está seguro de descartar todos los alumnos de esta tanda?');"
+                    title="Descartar todos los docentes de la matriz actual"
+                    onclick="return confirm('¿Está seguro de descartar todos los docentes de esta tanda?');"
                 >
                     <span class="material-symbols-outlined text-base">delete_sweep</span>
                     <span>Descartar Tanda</span>
                 </button>
             </div>
 
-            <!-- Botón Principal: Confirmar y Guardar Alumnos -->
+            <!-- Botón Principal: Confirmar y Guardar Docentes -->
             <button 
                 type="submit" 
                 name="accion" 
                 value="confirmar" 
-                id="btnSubirLosDatos"
+                id="btnSubirLosDatosDocentes"
                 class="w-full lg:w-auto inline-flex items-center justify-center gap-2.5 bg-gradient-to-r from-emerald-600 to-emerald-700 hover:from-emerald-500 hover:to-emerald-600 text-white font-black px-8 py-3.5 rounded-2xl shadow-xl shadow-emerald-600/35 transition-all text-sm sm:text-base cursor-pointer hover:scale-[1.02]"
             >
                 <span class="material-symbols-outlined text-xl">cloud_upload</span>
-                <span>Confirmar y Guardar Alumno{% if total_alumnos != 1 %}s ({{ total_alumnos }}){% endif %}</span>
+                <span>Confirmar y Guardar Docente{% if total_docentes != 1 %}s ({{ total_docentes }}){% endif %}</span>
             </button>
         </div>
     </form>
