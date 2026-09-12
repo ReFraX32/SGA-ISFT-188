@@ -14,19 +14,21 @@ def generar_libro_matriz_excel(carrera_obj):
     Retorna un objeto BytesIO con el archivo .xlsx generado.
     """
     wb = openpyxl.Workbook()
-    # Eliminar hoja por defecto
     default_sheet = wb.active
     wb.remove(default_sheet)
 
     # Estilos compartidos
-    font_title = Font(name='Arial', size=14, bold=True, color='1E3A8A')
-    font_subtitle = Font(name='Arial', size=11, bold=True, color='475569')
+    font_title = Font(name='Arial', size=13, bold=True, color='1E3A8A')
+    font_subtitle = Font(name='Arial', size=10, bold=True, color='334155')
+    font_meta = Font(name='Arial', size=9, bold=True, color='475569')
     font_header = Font(name='Arial', size=10, bold=True, color='FFFFFF')
     font_data = Font(name='Arial', size=9)
     
     fill_header_navy = PatternFill(start_color='1E3A8A', end_color='1E3A8A', fill_type='solid')
     fill_header_blue = PatternFill(start_color='2563EB', end_color='2563EB', fill_type='solid')
     fill_header_indigo = PatternFill(start_color='4F46E5', end_color='4F46E5', fill_type='solid')
+    fill_header_teal = PatternFill(start_color='0D9488', end_color='0D9488', fill_type='solid')
+    fill_header_slate = PatternFill(start_color='334155', end_color='334155', fill_type='solid')
     fill_zebra = PatternFill(start_color='F8FAFC', end_color='F8FAFC', fill_type='solid')
     fill_success = PatternFill(start_color='DCFCE7', end_color='DCFCE7', fill_type='solid')
     
@@ -36,23 +38,31 @@ def generar_libro_matriz_excel(carrera_obj):
     thin_border_side = Side(border_style='thin', color='CBD5E1')
     border_cell = Border(left=thin_border_side, right=thin_border_side, top=thin_border_side, bottom=thin_border_side)
 
-    # 1. Obtener alumnos inscriptos en la carrera (1 consulta SQL)
+    # 1. Obtener alumnos inscriptos en la carrera
     alumnos_carrera = list(
         Alumno.objects.filter(
             cursadas__comision__plan_estudio__carrera=carrera_obj
         ).select_related('persona').distinct().order_by('persona__apellido', 'persona__nombre')
     )
 
-    # 2. Planes y materias organizadas por año (1°, 2°, 3°) (1 consulta SQL)
+    # 2. Obtener planes y determinar años reales de la carrera
     planes_carrera = list(
         PlanEstudio.objects.filter(carrera=carrera_obj).select_related('materia').order_by('anio_carrera', 'id_plan')
     )
-    materias_por_anio = {1: [], 2: [], 3: []}
+    planes_carrera_ids = set(p.pk for p in planes_carrera)
+    total_materias = len(planes_carrera)
+    total_horas_anuales = sum(p.carga_horaria_anual or 0 for p in planes_carrera)
+
+    anios_en_plan = sorted(list(set(p.anio_carrera for p in planes_carrera if p.anio_carrera and p.anio_carrera > 0)))
+    duracion_anios = max(anios_en_plan) if anios_en_plan else 3
+    anios_lista = list(range(1, max(duracion_anios, 1) + 1))
+
+    materias_por_anio = defaultdict(list)
     for p in planes_carrera:
-        an = p.anio_carrera if p.anio_carrera in [1, 2, 3] else 1
+        an = p.anio_carrera if p.anio_carrera and p.anio_carrera > 0 else 1
         materias_por_anio[an].append(p)
 
-    # 3. Pre-cargar en bloque todas las cursadas y evaluaciones de estos alumnos (1 consulta SQL optimizada)
+    # 3. Pre-cargar en bloque cursadas y evaluaciones de estos alumnos
     cursadas_qs = Cursada.objects.filter(
         comision__plan_estudio__carrera=carrera_obj,
         alumno__in=alumnos_carrera
@@ -62,7 +72,6 @@ def generar_libro_matriz_excel(carrera_obj):
         'evaluaciones'
     )
 
-    # Indexar en memoria para consultas O(1) instantáneas
     cursadas_by_alumno_plan = {}
     cursadas_by_alumno = defaultdict(list)
     for c in cursadas_qs:
@@ -77,32 +86,49 @@ def generar_libro_matriz_excel(carrera_obj):
     ws_matriz = wb.create_sheet(title='LIBRO MATRIZ')
     ws_matriz.views.sheetView[0].showGridLines = True
     
-    # Encabezado Institucional
+    # Encabezado Institucional y Metadatos de Carrera
     ws_matriz.merge_cells('A1:G1')
     ws_matriz['A1'] = "INSTITUTO SUPERIOR DE FORMACIÓN TÉCNICA N° 188 — LIBRO MATRIZ"
     ws_matriz['A1'].font = font_title
     ws_matriz['A1'].alignment = align_center
 
+    res_str = carrera_obj.resolucion_vigente or 'Sin resolución'
+    if carrera_obj.resolucion_anterior:
+        res_str += f" (Ant: {carrera_obj.resolucion_anterior})"
+
     ws_matriz.merge_cells('A2:G2')
-    ws_matriz['A2'] = f"CARRERA: {carrera_obj.nombre_carrera} (Resolución: {carrera_obj.resolucion_vigente or 'S/R'})"
+    ws_matriz['A2'] = f"CARRERA: {carrera_obj.nombre_carrera} (Código: {carrera_obj.codigo_carrera}) — RESOLUCIÓN: {res_str}"
     ws_matriz['A2'].font = font_subtitle
     ws_matriz['A2'].alignment = align_center
 
+    ws_matriz.merge_cells('A3:G3')
+    ws_matriz['A3'] = f"CARACTERÍSTICAS DEL PLAN: {duracion_anios} Años de Duración | {total_materias} Asignaturas | Carga Horaria Total: {total_horas_anuales} hs anuales"
+    ws_matriz['A3'].font = font_meta
+    ws_matriz['A3'].alignment = align_center
+
     headers_matriz = ['Alumno', 'DNI', 'Libro', 'Folio / Legajo', 'Cohorte', 'Egresado', 'Plan de Estudio']
     for col_num, h_text in enumerate(headers_matriz, 1):
-        cell = ws_matriz.cell(row=4, column=col_num, value=h_text)
+        cell = ws_matriz.cell(row=5, column=col_num, value=h_text)
         cell.font = font_header
         cell.fill = fill_header_navy
         cell.alignment = align_center
         cell.border = border_cell
 
-    row_curr = 5
+    row_curr = 6
     for idx, al in enumerate(alumnos_carrera, 1):
         p = al.persona
         curs_al = cursadas_by_alumno.get(al.pk, [])
-        total_cursadas = len(curs_al)
-        promos_or_finals = sum(1 for c in curs_al if c.situacion_final in ('Promocionado', 'Final'))
-        es_egresado = "SI" if (total_cursadas > 0 and total_cursadas == promos_or_finals and total_cursadas >= len(planes_carrera) and len(planes_carrera) > 0) else "NO"
+
+        anios_lectivos = [c.comision.anio_lectivo for c in curs_al if c.comision and c.comision.anio_lectivo]
+        cohorte = str(min(anios_lectivos)) if anios_lectivos else (str(al.fecha_ingreso.year) if getattr(al, 'fecha_ingreso', None) else "—")
+
+        # Determinar egreso: todas las materias del plan aprobadas
+        aprobadas_ids = set(
+            c.comision.plan_estudio_id for c in curs_al 
+            if c.comision and c.comision.plan_estudio_id in planes_carrera_ids 
+            and c.situacion_final in ('Promocionado', 'Final')
+        )
+        es_egresado = "SI" if (total_materias > 0 and planes_carrera_ids.issubset(aprobadas_ids)) else "NO"
         
         libro_num = (idx // 100) + 1
         folio_num = (idx % 100) or 100
@@ -112,7 +138,7 @@ def generar_libro_matriz_excel(carrera_obj):
             p.dni,
             libro_num,
             al.legajo or f"F-{folio_num}",
-            "2024",
+            cohorte,
             es_egresado,
             carrera_obj.resolucion_vigente or carrera_obj.codigo_carrera
         ]
@@ -136,19 +162,23 @@ def generar_libro_matriz_excel(carrera_obj):
         ws_matriz.column_dimensions[col_letter].width = max(max_len + 4, 12)
 
     # -------------------------------------------------------------
-    # 2. HOJAS POR AÑO: 1° Año, 2° Año, 3° Año
+    # 2. HOJAS POR AÑO DINÁMICAS (1° Año, 2° Año, ... N° Año)
     # -------------------------------------------------------------
-    for anio in [1, 2, 3]:
+    colores_headers = [fill_header_blue, fill_header_indigo, fill_header_navy, fill_header_teal, fill_header_slate]
+
+    for i_anio, anio in enumerate(anios_lista):
         sheet_title = f"{anio}° Año"
         ws_anio = wb.create_sheet(title=sheet_title)
         ws_anio.views.sheetView[0].showGridLines = True
         
         planes_anio = materias_por_anio.get(anio, [])
-        total_cols = 3 + len(planes_anio)
+        total_cols = max(3 + len(planes_anio), 4)
 
-        ws_anio.merge_cells(start_row=1, start_column=1, end_row=1, end_column=max(total_cols, 4))
+        ws_anio.merge_cells(start_row=1, start_column=1, end_row=1, end_column=total_cols)
         ws_anio.cell(row=1, column=1, value=f"PLANILLA DE CALIFICACIONES — {anio}° AÑO ({carrera_obj.nombre_carrera})").font = font_title
         ws_anio.cell(row=1, column=1).alignment = align_center
+
+        fill_header_anio = colores_headers[i_anio % len(colores_headers)]
 
         # Headers
         headers_anio = ['Estudiante', 'DNI', 'Folio']
@@ -158,7 +188,7 @@ def generar_libro_matriz_excel(carrera_obj):
         for col_num, h_text in enumerate(headers_anio, 1):
             cell = ws_anio.cell(row=3, column=col_num, value=h_text)
             cell.font = font_header
-            cell.fill = fill_header_blue if anio == 1 else (fill_header_indigo if anio == 2 else fill_header_navy)
+            cell.fill = fill_header_anio
             cell.alignment = align_center
             cell.border = border_cell
 
@@ -172,7 +202,6 @@ def generar_libro_matriz_excel(carrera_obj):
             for plan_it in planes_anio:
                 curs = cursadas_by_alumno_plan.get((al.pk, plan_it.pk))
                 if curs:
-                    # Obtener última evaluación o situación en memoria
                     evals_validas = [ev for ev in curs.evaluaciones.all() if ev.nota is not None]
                     if evals_validas:
                         evals_validas.sort(key=lambda ev: ev.fecha or datetime.date.min, reverse=True)
@@ -205,7 +234,7 @@ def generar_libro_matriz_excel(carrera_obj):
     ws_egr.views.sheetView[0].showGridLines = True
     
     ws_egr.merge_cells('A1:F1')
-    ws_egr.cell(row=1, column=1, value=f"PLANILLA DE EGRESADOS — {carrera_obj.nombre_carrera}").font = font_title
+    ws_egr.cell(row=1, column=1, value=f"PLANILLA DE EGRESADOS — {carrera_obj.nombre_carrera} ({duracion_anios} Años)").font = font_title
     ws_egr.cell(row=1, column=1).alignment = align_center
 
     headers_egr = ['Estudiante', 'DNI', 'Libro', 'Folio', 'Egreso', 'Año de Egreso']
@@ -220,11 +249,21 @@ def generar_libro_matriz_excel(carrera_obj):
     for idx, al in enumerate(alumnos_carrera, 1):
         p = al.persona
         curs_al = cursadas_by_alumno.get(al.pk, [])
-        total_cursadas = len(curs_al)
-        promos_or_finals = sum(1 for c in curs_al if c.situacion_final in ('Promocionado', 'Final'))
-        es_egr = "SI" if (total_cursadas > 0 and total_cursadas == promos_or_finals and total_cursadas >= len(planes_carrera) and len(planes_carrera) > 0) else "NO"
+
+        aprobadas = [
+            c for c in curs_al 
+            if c.comision and c.comision.plan_estudio_id in planes_carrera_ids 
+            and c.situacion_final in ('Promocionado', 'Final')
+        ]
+        aprobadas_ids = set(c.comision.plan_estudio_id for c in aprobadas)
+        es_egr = "SI" if (total_materias > 0 and planes_carrera_ids.issubset(aprobadas_ids)) else "NO"
         
-        anio_egreso = "2026" if es_egr == "SI" else ""
+        if es_egr == "SI":
+            anios_aprobadas = [c.comision.anio_lectivo for c in aprobadas if c.comision.anio_lectivo]
+            anio_egreso = str(max(anios_aprobadas)) if anios_aprobadas else str(datetime.date.today().year)
+        else:
+            anio_egreso = ""
+
         libro_num = (idx // 100) + 1
         folio_num = al.legajo or f"{idx}"
 

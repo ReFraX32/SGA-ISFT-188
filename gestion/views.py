@@ -1,10 +1,12 @@
 import datetime
-from django.shortcuts import render, get_object_or_404
+from django.core.exceptions import PermissionDenied
+from django.shortcuts import render, get_object_or_404, redirect
 from django.http import JsonResponse, HttpResponse, Http404
 from django.db.models import Q, Avg, Count
 from django.views.decorators.csrf import csrf_protect
 from django.contrib.auth.decorators import login_required
 from django.core.paginator import Paginator
+from login.decorators import directivo_required
 from .models import Alumno, Persona, Docente, Cursada, Carrera, PlanEstudio, Evaluacion
 from .libro_matriz import generar_libro_matriz_excel
 
@@ -75,7 +77,7 @@ def formatear_carreras_con_resolucion(carreras_dict):
         resultado.append(f"{c_nom}{res_str} ({anios_str})")
     return resultado
 
-@login_required(login_url='login:login')
+@directivo_required
 @csrf_protect
 def buscador_view(request):
     req_data = request.POST if request.method == 'POST' else request.GET
@@ -264,7 +266,7 @@ def buscador_view(request):
     return render(request, 'gestion/buscador.html', context)
 
 
-@login_required(login_url='login:login')
+@directivo_required
 @csrf_protect
 def alumno_detalle_json(request, dni):
     dni_clean = str(dni).replace('.', '').replace(' ', '').replace('-', '').strip()[:20]
@@ -365,6 +367,13 @@ def alumno_detalle_json(request, dni):
 @csrf_protect
 def imprimir_estado_academico(request, dni):
     dni_clean = str(dni).replace('.', '').replace(' ', '').replace('-', '').strip()[:20]
+
+    # Seguridad estricta: un alumno solo puede imprimir su propio analítico
+    if not (request.user.is_staff or request.user.is_superuser):
+        user_dni = str(request.user.username).strip()
+        if user_dni != dni_clean:
+            raise PermissionDenied("Acceso restringido: solo podés consultar o imprimir tu propio expediente.")
+
     persona = get_object_or_404(Persona, dni=dni_clean)
     alumno = get_object_or_404(Alumno, persona=persona)
     cursadas = Cursada.objects.filter(alumno=alumno).select_related(
@@ -384,7 +393,7 @@ def imprimir_estado_academico(request, dni):
     return render(request, 'gestion/imprimir_analitico.html', context)
 
 
-@login_required(login_url='login:login')
+@directivo_required
 @csrf_protect
 def descargar_libro_matriz(request, codigo_carrera=None):
     """
@@ -422,7 +431,7 @@ def descargar_libro_matriz(request, codigo_carrera=None):
         )
 
 
-@login_required(login_url='login:login')
+@directivo_required
 def descargar_plantilla_alumnos(request):
     """
     Descarga la plantilla Excel (.xlsx) oficial formateada para la carga de alumnos.
@@ -438,7 +447,7 @@ def descargar_plantilla_alumnos(request):
     return response
 
 
-@login_required(login_url='login:login')
+@directivo_required
 @csrf_protect
 def importar_alumnos_view(request):
     """
@@ -461,7 +470,7 @@ def importar_alumnos_view(request):
     return JsonResponse(resultado)
 
 
-@login_required(login_url='login:login')
+@directivo_required
 def persona_datos_json(request, tipo, identificador):
     """
     Retorna los datos de una persona (alumno o docente) en formato JSON
@@ -502,7 +511,7 @@ def persona_datos_json(request, tipo, identificador):
     return JsonResponse(data)
 
 
-@login_required(login_url='login:login')
+@directivo_required
 @csrf_protect
 def persona_editar_view(request, tipo, identificador):
     """
@@ -547,7 +556,7 @@ def persona_editar_view(request, tipo, identificador):
         }, status=400)
 
 
-@login_required(login_url='login:login')
+@directivo_required
 @csrf_protect
 def persona_eliminar_view(request, tipo, identificador):
     """

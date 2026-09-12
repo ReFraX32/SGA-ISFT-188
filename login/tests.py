@@ -10,6 +10,7 @@ class LoginAppTestCase(TestCase):
         self.user = get_user_model().objects.create_user(
             username='admin',
             password='mde123',
+            is_staff=True,
         )
 
     def test_login_view_renders_username_and_password_fields(self):

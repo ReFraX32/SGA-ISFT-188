@@ -17,6 +17,7 @@ urlpatterns = [
     path('', include('gestion.urls')),
     path('carga-alumnos/', include('carga_alumnos.urls')),
     path('carreras/', include('carreras.urls')),
+    path('portal/', include('portal.urls')),
 ]
 
 # Habilitar ruta de administracion solo si ENABLE_ADMIN es activado explicitamente en variables de entorno

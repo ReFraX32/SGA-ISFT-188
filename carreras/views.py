@@ -10,14 +10,15 @@ from django.db.models import Count, Q, Sum, Min, Max
 from django.core.paginator import Paginator
 from django.contrib import messages
 
-from gestion.models import Carrera, Materia, PlanEstudio
+from gestion.models import Carrera, Materia, PlanEstudio, Comision
+from login.decorators import directivo_required
 from .forms import CarreraForm, CarreraEditForm
 
 CARRERA_SESSION_KEY = 'carrera_borrador_datos'
 MATRIZ_SESSION_KEY = 'carrera_borrador_materias'
 
 
-@login_required(login_url='login:login')
+@directivo_required
 def carreras_list_view(request):
     """
     Vista principal del módulo de carreras: listado, búsqueda avanzada,
@@ -93,7 +94,7 @@ def carreras_list_view(request):
     })
 
 
-@login_required(login_url='login:login')
+@directivo_required
 def carrera_detalle_json(request, codigo_carrera: str):
     """
     Endpoint JSON que retorna los datos detallados de una carrera y su plan
@@ -149,7 +150,7 @@ def carrera_detalle_json(request, codigo_carrera: str):
     })
 
 
-@login_required(login_url='login:login')
+@directivo_required
 @csrf_protect
 def alta_carrera_view(request):
     """
@@ -174,7 +175,7 @@ def alta_carrera_view(request):
     })
 
 
-@login_required(login_url='login:login')
+@directivo_required
 @csrf_protect
 def alta_carrera_matriz_view(request):
     """
@@ -242,10 +243,8 @@ def alta_carrera_matriz_view(request):
                 except Exception:
                     c_sem = Decimal('0.0')
 
-                try:
-                    c_anu = int(c_anu_raw) if c_anu_raw else 0
-                except ValueError:
-                    c_anu = 0
+                semanas = 16 if 'cuatrimestre' in c_mod.lower() else 32
+                c_anu = int(round(float(c_sem) * semanas))
 
                 materias_a_crear.append({
                     'codigo_materia': c_cod,
@@ -316,7 +315,7 @@ def alta_carrera_matriz_view(request):
     })
 
 
-@login_required(login_url='login:login')
+@directivo_required
 @csrf_protect
 def carrera_editar_view(request, codigo_carrera: str):
     """
@@ -350,7 +349,7 @@ def carrera_editar_view(request, codigo_carrera: str):
     })
 
 
-@login_required(login_url='login:login')
+@directivo_required
 @csrf_protect
 def carrera_eliminar_view(request, codigo_carrera: str):
     """
@@ -378,7 +377,7 @@ def carrera_eliminar_view(request, codigo_carrera: str):
         return redirect('carreras:carreras_list')
 
 
-@login_required(login_url='login:login')
+@directivo_required
 def imprimir_plan_estudio(request, codigo_carrera: str):
     """
     Vista imprimible del plan de estudios oficial de una carrera,
@@ -415,3 +414,172 @@ def imprimir_plan_estudio(request, codigo_carrera: str):
         'total_horas_anuales': total_horas_anuales,
         'total_horas_semanales': total_horas_semanales,
     })
+
+
+@directivo_required
+@csrf_protect
+def materia_agregar_carrera(request, codigo_carrera: str):
+    """
+    Agrega una nueva materia al plan de estudios de la carrera especificada.
+    """
+    if request.method != 'POST':
+        return JsonResponse({'success': False, 'mensaje': 'Método no permitido.'}, status=405)
+
+    carrera = get_object_or_404(Carrera, codigo_carrera=codigo_carrera)
+
+    codigo_materia = request.POST.get('codigo_materia', '').strip().upper()
+    nombre_materia = request.POST.get('nombre_materia', '').strip()
+    anio_raw = request.POST.get('anio_carrera', '1').strip()
+    modalidad = request.POST.get('modalidad', 'Anual').strip()
+    hs_semanales_raw = request.POST.get('carga_horaria_semanal', '0').strip()
+    hs_anuales_raw = request.POST.get('carga_horaria_anual', '0').strip()
+    correlatividades = request.POST.get('correlatividades', '').strip()
+
+    if not codigo_materia:
+        return JsonResponse({'success': False, 'mensaje': 'El código de la materia es obligatorio.'}, status=400)
+    if not nombre_materia:
+        return JsonResponse({'success': False, 'mensaje': 'El nombre de la materia es obligatorio.'}, status=400)
+
+    try:
+        anio_carrera = int(anio_raw)
+        if anio_carrera < 1 or anio_carrera > 10:
+            anio_carrera = 1
+    except ValueError:
+        anio_carrera = 1
+
+    try:
+        carga_horaria_semanal = Decimal(hs_semanales_raw.replace(',', '.')) if hs_semanales_raw else Decimal('0.0')
+    except Exception:
+        carga_horaria_semanal = Decimal('0.0')
+
+    semanas = 16 if 'cuatrimestre' in (modalidad or '').lower() else 32
+    carga_horaria_anual = int(round(float(carga_horaria_semanal) * semanas))
+
+    if PlanEstudio.objects.filter(carrera=carrera, materia__codigo_materia=codigo_materia).exists():
+        return JsonResponse({
+            'success': False,
+            'mensaje': f"La materia con código '{codigo_materia}' ya existe en el plan de estudios de esta carrera."
+        }, status=400)
+
+    try:
+        with transaction.atomic():
+            materia, created = Materia.objects.get_or_create(
+                codigo_materia=codigo_materia,
+                defaults={'nombre_materia': nombre_materia}
+            )
+            if not created and materia.nombre_materia != nombre_materia:
+                materia.nombre_materia = nombre_materia
+                materia.save()
+
+            plan = PlanEstudio.objects.create(
+                carrera=carrera,
+                materia=materia,
+                anio_carrera=anio_carrera,
+                modalidad=modalidad or 'Anual',
+                carga_horaria_semanal=carga_horaria_semanal,
+                carga_horaria_anual=carga_horaria_anual,
+                correlatividades=correlatividades,
+            )
+
+        return JsonResponse({
+            'success': True,
+            'mensaje': f"Materia '{nombre_materia}' incorporada exitosamente al {anio_carrera}° año.",
+            'id_plan': plan.id_plan,
+        })
+    except Exception as ex:
+        return JsonResponse({'success': False, 'mensaje': f"Error al agregar materia: {str(ex)}"}, status=400)
+
+
+@directivo_required
+@csrf_protect
+def materia_editar_carrera(request, codigo_carrera: str, id_plan: int):
+    """
+    Edita los datos de una materia dentro del plan de estudios de la carrera.
+    """
+    if request.method != 'POST':
+        return JsonResponse({'success': False, 'mensaje': 'Método no permitido.'}, status=405)
+
+    carrera = get_object_or_404(Carrera, codigo_carrera=codigo_carrera)
+    plan = get_object_or_404(PlanEstudio, id_plan=id_plan, carrera=carrera)
+
+    nombre_materia = request.POST.get('nombre_materia', '').strip()
+    anio_raw = request.POST.get('anio_carrera', str(plan.anio_carrera)).strip()
+    modalidad = request.POST.get('modalidad', plan.modalidad or 'Anual').strip()
+    hs_semanales_raw = request.POST.get('carga_horaria_semanal', str(plan.carga_horaria_semanal or '0')).strip()
+    hs_anuales_raw = request.POST.get('carga_horaria_anual', str(plan.carga_horaria_anual or '0')).strip()
+    correlatividades = request.POST.get('correlatividades', '').strip()
+
+    if not nombre_materia:
+        return JsonResponse({'success': False, 'mensaje': 'El nombre de la materia no puede quedar vacío.'}, status=400)
+
+    try:
+        anio_carrera = int(anio_raw)
+        if anio_carrera < 1 or anio_carrera > 10:
+            anio_carrera = plan.anio_carrera
+    except ValueError:
+        anio_carrera = plan.anio_carrera
+
+    try:
+        carga_horaria_semanal = Decimal(hs_semanales_raw.replace(',', '.')) if hs_semanales_raw else Decimal('0.0')
+    except Exception:
+        carga_horaria_semanal = plan.carga_horaria_semanal or Decimal('0.0')
+
+    semanas = 16 if 'cuatrimestre' in (modalidad or '').lower() else 32
+    carga_horaria_anual = int(round(float(carga_horaria_semanal) * semanas))
+
+    try:
+        with transaction.atomic():
+            plan.anio_carrera = anio_carrera
+            plan.modalidad = modalidad or 'Anual'
+            plan.carga_horaria_semanal = carga_horaria_semanal
+            plan.carga_horaria_anual = carga_horaria_anual
+            plan.correlatividades = correlatividades
+            plan.save()
+
+            if plan.materia.nombre_materia != nombre_materia:
+                plan.materia.nombre_materia = nombre_materia
+                plan.materia.save()
+
+        return JsonResponse({
+            'success': True,
+            'mensaje': f"Materia '{nombre_materia}' actualizada correctamente.",
+            'id_plan': plan.id_plan,
+        })
+    except Exception as ex:
+        return JsonResponse({'success': False, 'mensaje': f"Error al editar materia: {str(ex)}"}, status=400)
+
+
+@directivo_required
+@csrf_protect
+def materia_eliminar_carrera(request, codigo_carrera: str, id_plan: int):
+    """
+    Elimina una materia del plan de estudios de la carrera tras validar que
+    no posea cursadas con alumnos ni registros académicos asociados.
+    """
+    if request.method != 'POST':
+        return JsonResponse({'success': False, 'mensaje': 'Método no permitido.'}, status=405)
+
+    carrera = get_object_or_404(Carrera, codigo_carrera=codigo_carrera)
+    plan = get_object_or_404(PlanEstudio, id_plan=id_plan, carrera=carrera)
+
+    # Validar integridad referencial con cursadas de alumnos
+    tiene_cursadas = Comision.objects.filter(plan_estudio=plan, cursadas__isnull=False).exists()
+    if tiene_cursadas:
+        return JsonResponse({
+            'success': False,
+            'mensaje': f"No se puede eliminar '{plan.materia.nombre_materia}' porque tiene comisiones con cursadas de estudiantes o notas registradas."
+        }, status=400)
+
+    try:
+        with transaction.atomic():
+            nombre_mat = plan.materia.nombre_materia
+            Comision.objects.filter(plan_estudio=plan).delete()
+            plan.delete()
+
+        return JsonResponse({
+            'success': True,
+            'mensaje': f"La materia '{nombre_mat}' fue eliminada del plan de estudios exitosamente."
+        })
+    except Exception as ex:
+        return JsonResponse({'success': False, 'mensaje': f"Error al eliminar la materia: {str(ex)}"}, status=400)
+

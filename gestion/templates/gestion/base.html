@@ -330,40 +330,48 @@
             </button>
 
             {% if request.user.is_authenticated %}
-            <!-- Acceso a Docentes -->
-            <a 
-                href="{% url 'gestion:docentes' %}"
-                class="h-9 shrink-0 inline-flex items-center justify-center gap-1.5 px-3.5 rounded-xl bg-violet-500/10 hover:bg-violet-500/20 border border-violet-500/30 text-xs font-bold text-violet-500 hover:text-violet-400 transition-colors cursor-pointer shadow-sm"
-                title="Módulo de Búsqueda y Consulta de Docentes"
-            >
-                <span class="material-symbols-outlined text-base">school</span>
-                <span class="hidden md:inline">Docentes</span>
-            </a>
+                {% if request.user.is_staff or request.user.is_superuser %}
+                <!-- Acceso a Docentes (Directivos) -->
+                <a 
+                    href="{% url 'gestion:docentes' %}"
+                    class="h-9 shrink-0 inline-flex items-center justify-center gap-1.5 px-3.5 rounded-xl bg-violet-500/10 hover:bg-violet-500/20 border border-violet-500/30 text-xs font-bold text-violet-500 hover:text-violet-400 transition-colors cursor-pointer shadow-sm"
+                    title="Módulo de Búsqueda y Consulta de Docentes"
+                >
+                    <span class="material-symbols-outlined text-base">school</span>
+                    <span class="hidden md:inline">Docentes</span>
+                </a>
 
-            <!-- Acceso a Carreras -->
-            <a 
-                href="{% url 'carreras:carreras_list' %}"
-                class="h-9 shrink-0 inline-flex items-center justify-center gap-1.5 px-3.5 rounded-xl bg-amber-500/10 hover:bg-amber-500/20 border border-amber-500/30 text-xs font-bold text-amber-500 hover:text-amber-400 transition-colors cursor-pointer shadow-sm"
-                title="Módulo de Carreras y Planes de Estudio"
-            >
-                <span class="material-symbols-outlined text-base">auto_stories</span>
-                <span class="hidden md:inline">Carreras</span>
-            </a>
+                <!-- Acceso a Carreras (Directivos) -->
+                <a 
+                    href="{% url 'carreras:carreras_list' %}"
+                    class="h-9 shrink-0 inline-flex items-center justify-center gap-1.5 px-3.5 rounded-xl bg-amber-500/10 hover:bg-amber-500/20 border border-amber-500/30 text-xs font-bold text-amber-500 hover:text-amber-400 transition-colors cursor-pointer shadow-sm"
+                    title="Módulo de Carreras y Planes de Estudio"
+                >
+                    <span class="material-symbols-outlined text-base">auto_stories</span>
+                    <span class="hidden md:inline">Carreras</span>
+                </a>
 
-            <!-- Acceso a Alumnos -->
-            <a 
-                href="{% url 'gestion:buscador' %}"
-                class="h-9 shrink-0 inline-flex items-center justify-center gap-1.5 px-3.5 rounded-xl bg-indigo-500/10 hover:bg-indigo-500/20 border border-indigo-500/30 text-xs font-bold text-indigo-500 hover:text-indigo-400 transition-colors cursor-pointer shadow-sm"
-                title="Buscador y Nómina de Alumnos"
-            >
-                <span class="material-symbols-outlined text-base">groups</span>
-                <span class="hidden md:inline">Alumnos</span>
-            </a>
-            <!-- Distintivo de Usuario Autenticado -->
-            <div class="h-9 shrink-0 hidden md:inline-flex items-center justify-center gap-1.5 px-3.5 rounded-xl bg-indigo-500/10 border border-indigo-500/20 text-xs font-semibold text-indigo-500">
-                <span class="material-symbols-outlined text-sm">account_circle</span>
-                <span>{{ request.user.username }}</span>
-            </div>
+                <!-- Acceso a Alumnos (Directivos) -->
+                <a 
+                    href="{% url 'gestion:buscador' %}"
+                    class="h-9 shrink-0 inline-flex items-center justify-center gap-1.5 px-3.5 rounded-xl bg-indigo-500/10 hover:bg-indigo-500/20 border border-indigo-500/30 text-xs font-bold text-indigo-500 hover:text-indigo-400 transition-colors cursor-pointer shadow-sm"
+                    title="Buscador y Nómina de Alumnos"
+                >
+                    <span class="material-symbols-outlined text-base">groups</span>
+                    <span class="hidden md:inline">Alumnos</span>
+                </a>
+                <!-- Distintivo de Directivo -->
+                <div class="h-9 shrink-0 hidden md:inline-flex items-center justify-center gap-1.5 px-3.5 rounded-xl bg-indigo-500/10 border border-indigo-500/20 text-xs font-semibold text-indigo-500">
+                    <span class="material-symbols-outlined text-sm">admin_panel_settings</span>
+                    <span>Directivo: {{ request.user.username }}</span>
+                </div>
+                {% else %}
+                <!-- Distintivo y Enlace a Portal Personal Alumno / Docente -->
+                <div class="h-9 shrink-0 inline-flex items-center justify-center gap-1.5 px-3.5 rounded-xl bg-indigo-500/10 border border-indigo-500/20 text-xs font-semibold text-indigo-400">
+                    <span class="material-symbols-outlined text-sm">badge</span>
+                    <span>DNI {{ request.user.username }}</span>
+                </div>
+                {% endif %}
 
             <!-- Boton Cerrar Sesion -->
             <a 
@@ -483,18 +491,44 @@
 
         // Auto-ocultar al restaurar desde caché del navegador (botón atrás/adelante)
         window.addEventListener('pageshow', () => {
-            window.ocultarCargando();
+            if (typeof window.ocultarCargando === 'function') {
+                window.ocultarCargando();
+            }
         });
 
-        // Interceptar envíos de formularios para mostrar feedback amigable
+        // Interceptar envíos de formularios tradicionales para mostrar feedback visual
         document.addEventListener('submit', function(e) {
-            if (e.target && e.target.getAttribute('onsubmit') && e.target.getAttribute('onsubmit').includes('enviarExcelEstudiantes')) {
+            // Ignorar si el evento ya fue cancelado (e.g. AJAX con e.preventDefault())
+            if (e.defaultPrevented) {
                 return;
             }
-            window.mostrarCargando('Buscando estudiantes...', 'Estamos actualizando el listado según los filtros elegidos.', 'Aguardá un momento...');
+
+            const target = e.target;
+            if (!target) return;
+
+            // Ignorar formularios AJAX o modales internos
+            if (
+                target.dataset && target.dataset.ajax === 'true' ||
+                target.id && (target.id.includes('Materia') || target.id.includes('Editar') || target.id.includes('Eliminar')) ||
+                target.getAttribute('onsubmit') && (
+                    target.getAttribute('onsubmit').includes('enviarExcelEstudiantes') ||
+                    target.getAttribute('onsubmit').includes('preventDefault') ||
+                    target.getAttribute('onsubmit').includes('guardar') ||
+                    target.getAttribute('onsubmit').includes('confirmar')
+                )
+            ) {
+                return;
+            }
+
+            window.mostrarCargando('Procesando solicitud...', 'Actualizando la información del sistema. Aguardá unos instantes...', 'Cargando...');
         });
 
         document.addEventListener('DOMContentLoaded', () => {
+            // Siempre asegurar que cualquier overlay residual de carga quede oculto
+            if (typeof window.ocultarCargando === 'function') {
+                window.ocultarCargando();
+            }
+
             const savedTheme = localStorage.getItem('isft188_theme') || 'dark';
             applyTheme(savedTheme);
 

@@ -2,14 +2,14 @@ from decimal import Decimal
 from django.test import TestCase, Client
 from django.urls import reverse
 from django.contrib.auth.models import User
-from gestion.models import Carrera, Materia, PlanEstudio
+from gestion.models import Carrera, Materia, PlanEstudio, Comision, Cursada, Persona, Alumno
 from carreras.forms import CarreraForm, CarreraEditForm
 
 
 class CarrerasModuleTests(TestCase):
     def setUp(self):
         self.client = Client()
-        self.user = User.objects.create_user(username='testadmin', password='password123')
+        self.user = User.objects.create_user(username='testadmin', password='password123', is_staff=True)
         self.client.login(username='testadmin', password='password123')
 
         # Carrera de prueba con plan de estudio en 2 años
@@ -192,3 +192,104 @@ class CarrerasModuleTests(TestCase):
         self.assertContains(response, 'TEST-SOFT-188')
         self.assertContains(response, 'Algoritmos y Estructuras de Datos')
         self.assertContains(response, 'Bases de Datos Avanzadas')
+
+    def test_materia_agregar_carrera(self):
+        url = reverse('carreras:materia_agregar', kwargs={'codigo_carrera': 'TEST-SOFT-188'})
+        post_data = {
+            'codigo_materia': 'SOFT-301',
+            'nombre_materia': 'Ingeniería de Software II',
+            'anio_carrera': '3',
+            'modalidad': 'Anual',
+            'carga_horaria_semanal': '4.5',
+            'carga_horaria_anual': '144',
+            'correlatividades': 'SOFT-101',
+        }
+        resp = self.client.post(url, post_data, HTTP_X_REQUESTED_WITH='XMLHttpRequest')
+        self.assertEqual(resp.status_code, 200)
+        data = resp.json()
+        self.assertTrue(data['success'])
+
+        # Verificar en base de datos
+        plan_creado = PlanEstudio.objects.filter(carrera=self.carrera, materia__codigo_materia='SOFT-301').first()
+        self.assertIsNotNone(plan_creado)
+        self.assertEqual(plan_creado.anio_carrera, 3)
+        self.assertEqual(plan_creado.carga_horaria_semanal, Decimal('4.5'))
+        self.assertEqual(plan_creado.carga_horaria_anual, 144)
+
+    def test_materia_agregar_carrera_duplicada(self):
+        url = reverse('carreras:materia_agregar', kwargs={'codigo_carrera': 'TEST-SOFT-188'})
+        post_data = {
+            'codigo_materia': 'SOFT-101',  # ya existe en el plan
+            'nombre_materia': 'Algoritmos Duplicados',
+            'anio_carrera': '1',
+        }
+        resp = self.client.post(url, post_data, HTTP_X_REQUESTED_WITH='XMLHttpRequest')
+        self.assertEqual(resp.status_code, 400)
+        data = resp.json()
+        self.assertFalse(data['success'])
+
+    def test_materia_editar_carrera(self):
+        url = reverse('carreras:materia_editar', kwargs={'codigo_carrera': 'TEST-SOFT-188', 'id_plan': self.plan1.id_plan})
+        post_data = {
+            'nombre_materia': 'Algoritmos y Estructuras Modificado',
+            'anio_carrera': '1',
+            'modalidad': '1° Cuatrimestre',
+            'carga_horaria_semanal': '5.0',
+            'carga_horaria_anual': '80',
+            'correlatividades': 'NINGUNA',
+        }
+        resp = self.client.post(url, post_data, HTTP_X_REQUESTED_WITH='XMLHttpRequest')
+        self.assertEqual(resp.status_code, 200)
+        data = resp.json()
+        self.assertTrue(data['success'])
+
+        self.plan1.refresh_from_db()
+        self.assertEqual(self.plan1.materia.nombre_materia, 'Algoritmos y Estructuras Modificado')
+        self.assertEqual(self.plan1.modalidad, '1° Cuatrimestre')
+        self.assertEqual(self.plan1.carga_horaria_semanal, Decimal('5.0'))
+        self.assertEqual(self.plan1.carga_horaria_anual, 80)
+
+    def test_materia_eliminar_carrera_sin_cursadas(self):
+        url = reverse('carreras:materia_eliminar', kwargs={'codigo_carrera': 'TEST-SOFT-188', 'id_plan': self.plan2.id_plan})
+        resp = self.client.post(url, HTTP_X_REQUESTED_WITH='XMLHttpRequest')
+        self.assertEqual(resp.status_code, 200)
+        data = resp.json()
+        self.assertTrue(data['success'])
+        self.assertFalse(PlanEstudio.objects.filter(id_plan=self.plan2.id_plan).exists())
+
+    def test_materia_eliminar_carrera_con_cursadas_bloqueada(self):
+        # Crear alumno, persona, comision y cursada asociada a plan1
+        persona = Persona.objects.create(
+            dni='40123456',
+            nombre='Juan',
+            apellido='Pérez',
+        )
+        alumno = Alumno.objects.create(persona=persona)
+        comision = Comision.objects.create(
+            codigo_comision='COM-TEST-1',
+            plan_estudio=self.plan1,
+            anio_lectivo=2026
+        )
+        Cursada.objects.create(
+            alumno=alumno,
+            comision=comision
+        )
+
+        url = reverse('carreras:materia_eliminar', kwargs={'codigo_carrera': 'TEST-SOFT-188', 'id_plan': self.plan1.id_plan})
+        resp = self.client.post(url, HTTP_X_REQUESTED_WITH='XMLHttpRequest')
+        self.assertEqual(resp.status_code, 400)
+        data = resp.json()
+        self.assertFalse(data['success'])
+        self.assertIn('cursadas', data['mensaje'])
+        self.assertTrue(PlanEstudio.objects.filter(id_plan=self.plan1.id_plan).exists())
+
+    def test_alumno_restringido_de_carreras(self):
+        persona_al = Persona.objects.create(dni='45999888', nombre='Ana', apellido='Gómez')
+        Alumno.objects.create(persona=persona_al)
+        User.objects.create_user(username='45999888', password='password123', is_staff=False)
+        self.client.login(username='45999888', password='password123')
+
+        resp = self.client.get(reverse('carreras:carreras_list'))
+        self.assertEqual(resp.status_code, 302)
+        self.assertRedirects(resp, reverse('portal:alumno'))
+

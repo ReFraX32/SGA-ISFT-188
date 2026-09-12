@@ -7,6 +7,7 @@
 # --------------------------------------------------------------------------
 
 import datetime
+from django.core.exceptions import PermissionDenied
 from django.shortcuts import render, redirect, get_object_or_404
 from django.urls import reverse
 from django.contrib import messages
@@ -16,6 +17,7 @@ from django.views.decorators.csrf import csrf_protect
 from django.contrib.auth.decorators import login_required
 from django.core.paginator import Paginator
 
+from login.decorators import directivo_required
 from gestion.models import Docente, Persona, ComisionDocente
 from gestion.forms import DocenteForm
 from gestion.views import (
@@ -39,7 +41,7 @@ def get_docentes_sesion(request):
     return []
 
 
-@login_required(login_url='login:login')
+@directivo_required
 @csrf_protect
 def docentes_view(request):
     """Módulo de búsqueda, filtrado y consulta de docentes."""
@@ -139,7 +141,7 @@ def docentes_view(request):
     })
 
 
-@login_required(login_url='login:login')
+@directivo_required
 @csrf_protect
 def alta_docente_view(request):
     """
@@ -204,7 +206,7 @@ def alta_docente_view(request):
     })
 
 
-@login_required(login_url='login:login')
+@directivo_required
 @csrf_protect
 def paso2_confirmacion_docentes(request):
     """
@@ -341,7 +343,7 @@ def paso2_confirmacion_docentes(request):
     })
 
 
-@login_required(login_url='login:login')
+@directivo_required
 @csrf_protect
 def docente_detalle_json(request, dni):
     dni_clean = str(dni).replace('.', '').replace(' ', '').replace('-', '').strip()[:20]
@@ -425,7 +427,7 @@ def docente_detalle_json(request, dni):
 
 
 
-@login_required(login_url='login:login')
+@directivo_required
 @csrf_protect
 def importar_docentes_view(request):
     """
@@ -453,6 +455,12 @@ def imprimir_ficha_docente(request, dni: str):
     estructurada de manera idéntica al analítico de alumnos.
     """
     dni_clean = str(dni).replace('.', '').replace(' ', '').replace('-', '').strip()[:20]
+
+    # Seguridad estricta: un docente solo puede imprimir su propia ficha
+    if not (request.user.is_staff or request.user.is_superuser):
+        user_dni = str(request.user.username).strip()
+        if user_dni != dni_clean:
+            raise PermissionDenied("Acceso restringido: solo podés consultar o imprimir tu propia ficha docente.")
     persona = get_object_or_404(Persona, dni=dni_clean)
     docente = get_object_or_404(Docente, persona=persona)
     comisiones_doc = ComisionDocente.objects.filter(docente=docente).select_related(

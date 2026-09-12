@@ -1,0 +1,258 @@
+{% extends 'gestion/base.html' %}
+
+{% block title %}Mi Portal Docente — Prof. {{ persona.apellido }}, {{ persona.nombre }} | ISFT 188{% endblock %}
+
+{% block content %}
+<div class="space-y-6 max-w-6xl mx-auto pb-12">
+
+    <!-- 1. Cabecera y Filiación Profesional del Docente -->
+    <div class="glass-card rounded-3xl p-6 sm:p-8 border theme-border shadow-2xl relative overflow-hidden">
+        <div class="flex flex-col md:flex-row md:items-center justify-between gap-6 pb-6 border-b theme-border">
+            <div class="flex items-center gap-4">
+                <div class="w-16 h-16 rounded-2xl bg-gradient-to-tr from-violet-600 to-indigo-600 text-white flex items-center justify-center shrink-0 shadow-lg shadow-violet-600/25">
+                    <span class="material-symbols-outlined text-3xl">psychology</span>
+                </div>
+                <div>
+                    <div class="flex items-center gap-2 flex-wrap">
+                        <span class="badge-pill bg-violet-500/15 border border-violet-500/30 text-violet-400 text-xs font-bold uppercase tracking-wider">
+                            Portal Docente
+                        </span>
+                        {% if docente.titulo_mn %}
+                        <span class="badge-pill bg-white/5 border theme-border text-xs font-bold text-violet-300">
+                            {{ docente.titulo_mn }}
+                        </span>
+                        {% endif %}
+                    </div>
+                    <h2 class="text-xl sm:text-3xl font-black theme-text-main mt-1">
+                        Prof. {{ persona.apellido }}, {{ persona.nombre }}
+                    </h2>
+                    <p class="text-xs theme-text-muted">
+                        DNI {{ dni_formateado }}{% if persona.cuil %} • CUIL {{ cuil_formateado }}{% endif %}
+                    </p>
+                </div>
+            </div>
+
+            <!-- Botón de Imprimir Ficha Docente -->
+            <div class="shrink-0">
+                <a 
+                    href="{% url 'gestion:imprimir_ficha_docente' persona.dni %}"
+                    target="_blank"
+                    class="w-full sm:w-auto inline-flex items-center justify-center gap-2 px-5 py-2.5 rounded-xl bg-violet-600 hover:bg-violet-500 text-white font-bold text-xs shadow-md shadow-violet-600/25 transition-all cursor-pointer hover:scale-[1.02]"
+                    title="Imprimir o Descargar mi Ficha Docente Institucional"
+                >
+                    <span class="material-symbols-outlined text-base">print</span>
+                    <span>Imprimir mi Ficha Docente</span>
+                </a>
+            </div>
+        </div>
+
+        <!-- Grilla de Datos Personales y de Contacto -->
+        <div class="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-4 gap-4 pt-6 text-xs">
+            <div>
+                <span class="block text-[11px] font-semibold theme-text-muted uppercase tracking-wider">Título / Especialidad</span>
+                <span class="font-bold theme-text-main">{{ docente.titulo_mn|default:"Sin registrar" }}</span>
+            </div>
+            <div>
+                <span class="block text-[11px] font-semibold theme-text-muted uppercase tracking-wider">Correo Electrónico</span>
+                <span class="font-bold theme-text-main font-mono break-all">{{ persona.mail|default:"Sin registrar" }}</span>
+            </div>
+            <div>
+                <span class="block text-[11px] font-semibold theme-text-muted uppercase tracking-wider">Teléfono / Celular</span>
+                <span class="font-bold theme-text-main font-mono">{{ telefono_formateado|default:"Sin registrar" }}</span>
+            </div>
+            <div>
+                <span class="block text-[11px] font-semibold theme-text-muted uppercase tracking-wider">Localidad</span>
+                <span class="font-bold theme-text-main">{{ persona.localidad|default:"Sin registrar" }}</span>
+            </div>
+            <div>
+                <span class="block text-[11px] font-semibold theme-text-muted uppercase tracking-wider">Fecha de Nacimiento</span>
+                <span class="font-bold theme-text-main">
+                    {{ persona.fecha_nacimiento|date:"d/m/Y"|default:"Sin registrar" }}
+                    {% if persona.edad %}<span class="text-violet-400 font-normal">({{ persona.edad }} años)</span>{% endif %}
+                </span>
+            </div>
+            <div>
+                <span class="block text-[11px] font-semibold theme-text-muted uppercase tracking-wider">Identidad de Género</span>
+                <span class="font-bold theme-text-main">{{ persona.genero_descripcion }}</span>
+            </div>
+            <div class="sm:col-span-2">
+                <span class="block text-[11px] font-semibold theme-text-muted uppercase tracking-wider">Domicilio</span>
+                <span class="font-bold theme-text-main">{{ persona.domicilio|default:"Sin registrar" }}</span>
+            </div>
+        </div>
+    </div>
+
+    <!-- 2. Métricas de Actividad Docente -->
+    <div class="grid grid-cols-1 sm:grid-cols-3 gap-4">
+        <!-- Total Asignaturas -->
+        <div class="glass-card p-4 sm:p-5 rounded-2xl border theme-border shadow-md text-center">
+            <div class="text-[10px] sm:text-xs theme-text-muted font-bold uppercase tracking-wider">Asignaturas a Cargo</div>
+            <div class="text-2xl sm:text-4xl font-black text-violet-400 mt-1">
+                {{ total_asignaturas }}
+            </div>
+            <span class="text-[10px] theme-text-muted">Espacios curriculares</span>
+        </div>
+
+        <!-- Total Comisiones -->
+        <div class="glass-card p-4 sm:p-5 rounded-2xl border theme-border shadow-md text-center">
+            <div class="text-[10px] sm:text-xs theme-text-muted font-bold uppercase tracking-wider">Comisiones Asignadas</div>
+            <div class="text-2xl sm:text-4xl font-black text-indigo-400 mt-1">
+                {{ total_comisiones }}
+            </div>
+            <span class="text-[10px] theme-text-muted">Cursos y divisiones</span>
+        </div>
+
+        <!-- Estudiantes a Cargo -->
+        <div class="glass-card p-4 sm:p-5 rounded-2xl border theme-border shadow-md text-center">
+            <div class="text-[10px] sm:text-xs theme-text-muted font-bold uppercase tracking-wider">Estudiantes a Cargo</div>
+            <div class="text-2xl sm:text-4xl font-black text-emerald-400 mt-1">
+                {{ total_estudiantes }}
+            </div>
+            <span class="text-[10px] theme-text-muted">Alumnos cursando</span>
+        </div>
+    </div>
+
+    <!-- 3. Asignaturas y Comisiones en las que da clases -->
+    <div class="space-y-6">
+        <div class="flex items-center gap-2">
+            <span class="material-symbols-outlined text-violet-500 text-xl">menu_book</span>
+            <h3 class="text-lg font-black theme-text-main">
+                Asignaturas y Comisiones a Cargo
+            </h3>
+        </div>
+
+        {% if not carreras %}
+        <div class="glass-card rounded-3xl p-10 text-center border theme-border space-y-3">
+            <span class="material-symbols-outlined text-4xl text-slate-500">assignment_late</span>
+            <h4 class="text-sm font-bold theme-text-main">No poseés comisiones asignadas actualmente</h4>
+            <p class="text-xs theme-text-muted max-w-md mx-auto">
+                Tus designaciones docentes aparecerán en este panel ni bien sean cargadas por la secretaría del instituto.
+            </p>
+        </div>
+        {% else %}
+
+        {% for c_info in carreras %}
+        <div class="glass-card rounded-3xl border theme-border shadow-xl overflow-hidden space-y-4 p-5 sm:p-6">
+            <!-- Cabecera de Carrera -->
+            <div class="flex flex-col sm:flex-row sm:items-center justify-between gap-3 pb-4 border-b theme-border">
+                <div>
+                    <span class="text-[10px] uppercase tracking-widest text-violet-400 font-bold block">
+                        Carrera / Plan de Estudio
+                    </span>
+                    <h4 class="text-base sm:text-lg font-black theme-text-main">
+                        {{ c_info.nombre_carrera }}
+                    </h4>
+                    <span class="text-xs theme-text-muted">
+                        Resolución Ministerial: <strong class="theme-text-main">{{ c_info.resolucion }}</strong>
+                    </span>
+                </div>
+                <div class="shrink-0">
+                    <span class="badge-pill bg-violet-500/10 border border-violet-500/30 text-violet-400 text-xs font-bold">
+                        {{ c_info.total_comisiones_carrera }} comisión{{ c_info.total_comisiones_carrera|pluralize:"es" }}
+                    </span>
+                </div>
+            </div>
+
+            <!-- Años Curriculares -->
+            <div class="space-y-5">
+                {% for anio_info in c_info.anios %}
+                <div class="rounded-2xl border theme-border overflow-hidden" style="background: var(--card-inner-bg);">
+                    <!-- Barra de Título del Año -->
+                    <div class="px-4 py-3 border-b theme-border flex items-center justify-between bg-white/[0.03]">
+                        <div class="flex items-center gap-2">
+                            <span class="w-2 h-2 rounded-full bg-violet-500"></span>
+                            <h5 class="text-xs font-black uppercase tracking-wider theme-text-main">
+                                {{ anio_info.titulo }}
+                            </h5>
+                        </div>
+                        <span class="text-[11px] theme-text-muted font-semibold">
+                            {{ anio_info.comisiones|length }} materia{{ anio_info.comisiones|length|pluralize }}
+                        </span>
+                    </div>
+
+                    <!-- Tabla de Comisiones del Docente -->
+                    <div class="w-full overflow-x-auto">
+                        <table class="w-full text-left text-xs">
+                            <thead class="theme-table-header uppercase text-[10px] tracking-wider font-bold border-b theme-border">
+                                <tr>
+                                    <th class="py-3 px-4 min-w-[200px]">Materia / Código</th>
+                                    <th class="py-3 px-4 min-w-[120px]">Comisión</th>
+                                    <th class="py-3 px-4 min-w-[120px]">Turno / División</th>
+                                    <th class="py-3 px-4 text-center min-w-[100px]">Rol Docente</th>
+                                    <th class="py-3 px-4 text-center min-w-[120px]">Carga Horaria</th>
+                                    <th class="py-3 px-4 text-center min-w-[120px]">Alumnos Inscriptos</th>
+                                </tr>
+                            </thead>
+                            <tbody class="theme-table-divide font-medium">
+                                {% for item in anio_info.comisiones %}
+                                <tr class="theme-table-row">
+                                    <!-- Materia -->
+                                    <td class="py-3 px-4">
+                                        <div class="font-bold theme-text-main leading-snug">
+                                            {{ item.materia.nombre_materia }}
+                                        </div>
+                                        <span class="font-mono text-[10px] theme-text-muted block">
+                                            {{ item.materia.codigo_materia }} • {{ item.plan.modalidad|default:"Anual" }}
+                                        </span>
+                                    </td>
+
+                                    <!-- Comisión -->
+                                    <td class="py-3 px-4">
+                                        <span class="font-bold theme-text-main block">
+                                            Comisión {{ item.comision.codigo_comision }}
+                                        </span>
+                                        <span class="text-[10px] theme-text-muted block">
+                                            Año lectivo {{ item.anio_lectivo }}
+                                        </span>
+                                    </td>
+
+                                    <!-- Turno / División -->
+                                    <td class="py-3 px-4">
+                                        <span class="theme-text-main block">
+                                            {{ item.turno }}
+                                        </span>
+                                        <span class="text-[10px] theme-text-muted block">
+                                            División {{ item.division }} • {{ item.cuatrimestre }}
+                                        </span>
+                                    </td>
+
+                                    <!-- Rol Docente -->
+                                    <td class="py-3 px-4 text-center whitespace-nowrap">
+                                        <span class="badge-pill bg-violet-500/15 border border-violet-500/30 text-violet-400 text-xs font-bold">
+                                            {{ item.rol }}
+                                        </span>
+                                    </td>
+
+                                    <!-- Carga Horaria -->
+                                    <td class="py-3 px-4 text-center whitespace-nowrap">
+                                        <span class="font-bold theme-text-main block">
+                                            {{ item.hs_semanales|default:"-" }} hs/sem
+                                        </span>
+                                        <span class="text-[10px] theme-text-muted block">
+                                            {{ item.hs_anuales|default:"-" }} hs anuales
+                                        </span>
+                                    </td>
+
+                                    <!-- Estudiantes Inscriptos -->
+                                    <td class="py-3 px-4 text-center whitespace-nowrap">
+                                        <span class="inline-flex items-center gap-1.5 px-3 py-1 rounded-full bg-emerald-500/10 border border-emerald-500/30 text-emerald-400 font-bold text-xs">
+                                            <span class="material-symbols-outlined text-sm">groups</span>
+                                            <span>{{ item.cantidad_estudiantes }}</span>
+                                        </span>
+                                    </td>
+                                </tr>
+                                {% endfor %}
+                            </tbody>
+                        </table>
+                    </div>
+                </div>
+                {% endfor %}
+            </div>
+        </div>
+        {% endfor %}
+
+        {% endif %}
+    </div>
+
+</div>
+{% endblock %}

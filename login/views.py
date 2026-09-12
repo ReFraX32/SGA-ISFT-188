@@ -4,6 +4,7 @@ from django.shortcuts import redirect
 from django.urls import reverse_lazy
 from django.contrib.auth import logout
 
+from gestion.models import Alumno, Docente
 from .forms import LoginForm
 from .security import clear_failed_logins, is_login_limited, lockout_seconds, register_failed_login
 
@@ -14,6 +15,25 @@ class LoginView(DjangoLoginView):
     redirect_field_name = 'next'
     template_name = 'login/login.html'
     username_post_key = 'username'
+
+    def get_success_url(self):
+        user = self.request.user
+        # Si vino con parámetro next explícito y es válido
+        redirect_to = self.get_redirect_url()
+        if redirect_to:
+            return redirect_to
+
+        if user.is_authenticated:
+            if user.is_superuser or user.is_staff:
+                return reverse_lazy('gestion:buscador')
+
+            dni = str(user.username).strip()
+            if Docente.objects.filter(persona__dni=dni).exists():
+                return reverse_lazy('portal:docente')
+            if Alumno.objects.filter(persona__dni=dni).exists():
+                return reverse_lazy('portal:alumno')
+
+        return reverse_lazy('gestion:buscador')
 
     def get_context_data(self, **kwargs):
         context = super().get_context_data(**kwargs)

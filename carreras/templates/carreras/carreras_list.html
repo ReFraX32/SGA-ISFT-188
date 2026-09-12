@@ -5,7 +5,7 @@
 {% block content %}
 <div class="space-y-6">
     <!-- Encabezado del Módulo y Acciones -->
-    <div class="glass-card p-6 md:p-8 rounded-3xl relative shadow-2xl z-30">
+    <div class="glass-card p-6 md:p-8 rounded-3xl relative shadow-2xl">
         <div class="relative z-10 flex flex-col md:flex-row md:items-center justify-between gap-6">
             <div>
                 <div class="flex items-center gap-2 text-xs font-bold uppercase tracking-wider text-amber-500 mb-1">
@@ -67,7 +67,7 @@
     {% endif %}
 
     <!-- Filtros de Búsqueda de Carreras (Homogéneo con Docentes y Alumnos) -->
-    <div class="glass-card p-6 rounded-2xl shadow-xl relative z-10">
+    <div class="glass-card p-6 rounded-2xl shadow-xl relative">
         <form method="POST" action="{% url 'carreras:carreras_list' %}" id="buscadorCarrerasForm" class="space-y-4">
             {% csrf_token %}
             <input type="hidden" name="page" id="pageInputCarreras" value="{{ page_obj.number }}">
@@ -397,7 +397,7 @@
 </div>
 
 <!-- 1. Modal Expediente / Plan de Estudios de Carrera (Materias agrupadas por Año) -->
-<div id="modalExpedienteCarrera" class="fixed inset-0 z-[9999] hidden flex items-center justify-center p-3 md:p-6 bg-black/75 backdrop-blur-md">
+<div id="modalExpedienteCarrera" class="fixed inset-0 hidden flex items-center justify-center p-3 md:p-6" style="z-index: 99990; backdrop-filter: blur(12px); -webkit-backdrop-filter: blur(12px); background-color: rgba(0, 0, 0, 0.75);">
     <div class="glass-modal w-full max-w-4xl rounded-3xl overflow-hidden max-h-[92vh] flex flex-col shadow-2xl border theme-border animate-in zoom-in-95 duration-200">
         <!-- Cabecera del Modal -->
         <div class="px-6 py-4 border-b theme-border flex items-center justify-between gap-4" style="background: var(--header-bg);">
@@ -449,16 +449,17 @@
     </div>
 </div>
 
-<!-- 2. Modal Editar Carrera con Botón Amarillo Nítido -->
-<div id="modalEditarCarrera" class="fixed inset-0 z-[9999] hidden flex items-center justify-center p-4 bg-black/75 backdrop-blur-md">
-    <div class="glass-modal w-full max-w-lg rounded-3xl p-6 sm:p-8 space-y-5 shadow-2xl border theme-border animate-in zoom-in-95 duration-200">
-        <div class="flex items-center justify-between gap-3 pb-3 border-b theme-border">
+<!-- 2. Modal Editar Carrera y Plan de Estudios (Materias) -->
+<div id="modalEditarCarrera" class="fixed inset-0 hidden flex items-center justify-center p-4" style="z-index: 99990; backdrop-filter: blur(12px); -webkit-backdrop-filter: blur(12px); background-color: rgba(0, 0, 0, 0.75);">
+    <div class="glass-modal w-full max-w-4xl max-h-[92vh] flex flex-col rounded-3xl p-6 sm:p-8 space-y-5 shadow-2xl border theme-border animate-in zoom-in-95 duration-200">
+        <!-- Header -->
+        <div class="flex items-center justify-between gap-3 pb-3 border-b theme-border shrink-0">
             <div class="flex items-center gap-3">
                 <div class="w-10 h-10 rounded-2xl bg-amber-500/20 text-amber-400 flex items-center justify-center shrink-0">
-                    <span class="material-symbols-outlined text-xl">edit</span>
+                    <span class="material-symbols-outlined text-xl">school</span>
                 </div>
                 <div>
-                    <h3 class="text-base sm:text-lg font-black theme-text-main leading-tight">Editar Carrera</h3>
+                    <h3 class="text-base sm:text-lg font-black theme-text-main leading-tight" id="tituloEditarCarrera">Editar Carrera y Materias</h3>
                     <p class="text-xs theme-text-muted" id="labelEditarCodigoCarrera">Código: -</p>
                 </div>
             </div>
@@ -467,65 +468,263 @@
             </button>
         </div>
 
-        <form id="formEditarCarrera" onsubmit="guardarEdicionCarrera(event)" class="space-y-4">
-            {% csrf_token %}
-            <input type="hidden" id="editCodigoCarrera" name="codigo_carrera" value="">
+        <!-- Navigation Tabs -->
+        <div class="flex items-center gap-2 border-b theme-border shrink-0 pb-1">
+            <button
+                type="button"
+                id="tabBtnDatosCarrera"
+                onclick="cambiarPestanaEditar('datos')"
+                class="px-4 py-2 rounded-xl text-xs font-bold transition-all cursor-pointer flex items-center gap-2 bg-amber-500/20 text-amber-400 border border-amber-500/30"
+            >
+                <span class="material-symbols-outlined text-sm">edit_note</span>
+                <span>Datos de la Carrera</span>
+            </button>
+            <button
+                type="button"
+                id="tabBtnMateriasCarrera"
+                onclick="cambiarPestanaEditar('materias')"
+                class="px-4 py-2 rounded-xl text-xs font-bold transition-all cursor-pointer flex items-center gap-2 theme-text-muted hover:theme-text-main"
+            >
+                <span class="material-symbols-outlined text-sm">menu_book</span>
+                <span>Plan de Estudios (Materias)</span>
+                <span id="badgeCantMateriasEdit" class="ml-1 px-2 py-0.5 rounded-full text-[10px] font-black bg-white/10 text-amber-400">0</span>
+            </button>
+        </div>
 
-            <div id="errorEdicionCarrera" class="hidden alert-error-card p-3 rounded-xl text-xs text-rose-300"></div>
+        <!-- Tab 1: Datos de la Carrera -->
+        <div id="tabContenidoDatos" class="overflow-y-auto space-y-4 pr-1">
+            <form id="formEditarCarrera" data-ajax="true" onsubmit="guardarEdicionCarrera(event)" class="space-y-4">
+                {% csrf_token %}
+                <input type="hidden" id="editCodigoCarrera" name="codigo_carrera" value="">
 
-            <div class="space-y-1.5">
-                <label class="block text-xs font-bold uppercase tracking-wider theme-text-muted">
-                    Nombre Oficial de la Carrera *
-                </label>
-                <input
-                    type="text"
-                    id="editNombreCarrera"
-                    name="nombre_carrera"
-                    required
-                    class="w-full px-4 py-3 rounded-2xl text-sm font-medium border theme-border transition-all shadow-sm"
-                >
-            </div>
+                <div id="errorEdicionCarrera" class="hidden alert-error-card p-3 rounded-xl text-xs text-rose-300"></div>
 
-            <div class="space-y-1.5">
-                <label class="block text-xs font-bold uppercase tracking-wider theme-text-muted">
-                    Resolución Ministerial Vigente
-                </label>
-                <input
-                    type="text"
-                    id="editResolucionVigente"
-                    name="resolucion_vigente"
-                    class="w-full px-4 py-3 rounded-2xl text-sm font-medium border theme-border transition-all shadow-sm"
-                    placeholder="Ej. Res. N° 6183/19"
-                >
-            </div>
+                <div class="space-y-1.5">
+                    <label class="block text-xs font-bold uppercase tracking-wider theme-text-muted">
+                        Nombre Oficial de la Carrera *
+                    </label>
+                    <input
+                        type="text"
+                        id="editNombreCarrera"
+                        name="nombre_carrera"
+                        required
+                        class="w-full px-4 py-3 rounded-2xl text-sm font-medium border theme-border transition-all shadow-sm"
+                    >
+                </div>
 
-            <div class="space-y-1.5">
-                <label class="block text-xs font-bold uppercase tracking-wider theme-text-muted">
-                    Resolución Anterior (Opcional)
-                </label>
-                <input
-                    type="text"
-                    id="editResolucionAnterior"
-                    name="resolucion_anterior"
-                    class="w-full px-4 py-3 rounded-2xl text-sm font-medium border theme-border transition-all shadow-sm"
-                    placeholder="Ej. Res. N° 320/09"
-                >
-            </div>
+                <div class="space-y-1.5">
+                    <label class="block text-xs font-bold uppercase tracking-wider theme-text-muted">
+                        Resolución Ministerial Vigente
+                    </label>
+                    <input
+                        type="text"
+                        id="editResolucionVigente"
+                        name="resolucion_vigente"
+                        class="w-full px-4 py-3 rounded-2xl text-sm font-medium border theme-border transition-all shadow-sm"
+                        placeholder="Ej. Res. N° 6183/19"
+                    >
+                </div>
 
-            <div class="flex items-center justify-end gap-3 pt-3 border-t theme-border">
+                <div class="space-y-1.5">
+                    <label class="block text-xs font-bold uppercase tracking-wider theme-text-muted">
+                        Resolución Anterior (Opcional)
+                    </label>
+                    <input
+                        type="text"
+                        id="editResolucionAnterior"
+                        name="resolucion_anterior"
+                        class="w-full px-4 py-3 rounded-2xl text-sm font-medium border theme-border transition-all shadow-sm"
+                        placeholder="Ej. Res. N° 320/09"
+                    >
+                </div>
+
+                <div class="flex items-center justify-end gap-3 pt-3 border-t theme-border">
+                    <button
+                        type="button"
+                        onclick="cerrarEditarCarrera()"
+                        class="px-4 py-2.5 rounded-xl bg-slate-500/15 hover:bg-slate-500/25 theme-text-main font-bold text-xs transition-colors cursor-pointer"
+                    >
+                        Cerrar
+                    </button>
+                    <button
+                        type="submit"
+                        id="btnGuardarEdicionCarrera"
+                        style="background-color: #f59e0b; color: #0f172a;"
+                        class="px-5 py-2.5 rounded-xl font-black text-xs shadow-md shadow-amber-500/30 transition-all cursor-pointer hover:scale-[1.02]"
+                    >
+                        Guardar Cambios de Carrera
+                    </button>
+                </div>
+            </form>
+        </div>
+
+        <!-- Tab 2: Materias del Plan de Estudio -->
+        <div id="tabContenidoMaterias" class="hidden overflow-y-auto space-y-4 pr-1">
+            <!-- Barra de alerta dinámica de materias -->
+            <div id="alertaMateriasEdit" class="hidden p-3 rounded-xl text-xs font-medium"></div>
+
+            <!-- Header de materias y botón agregar -->
+            <div class="flex flex-wrap items-center justify-between gap-3 p-3.5 rounded-2xl bg-white/5 border theme-border">
+                <div>
+                    <h4 class="text-sm font-bold theme-text-main">Materias en el Plan de Estudios</h4>
+                    <p class="text-[11px] theme-text-muted">Podés editar asignaturas existentes, añadir nuevas o eliminarlas.</p>
+                </div>
                 <button
                     type="button"
-                    onclick="cerrarEditarCarrera()"
-                    class="px-4 py-2.5 rounded-xl bg-slate-500/15 hover:bg-slate-500/25 theme-text-main font-bold text-xs transition-colors cursor-pointer"
+                    onclick="toggleFormAgregarMateria()"
+                    id="btnToggleAgregarMateria"
+                    style="background-color: #f59e0b; color: #0f172a;"
+                    class="inline-flex items-center gap-1.5 px-3.5 py-2 rounded-xl font-bold text-xs shadow-md shadow-amber-500/20 transition-all cursor-pointer hover:scale-105"
                 >
+                    <span class="material-symbols-outlined text-sm font-bold">add</span>
+                    <span>Nueva Materia</span>
+                </button>
+            </div>
+
+            <!-- Panel para Agregar Nueva Materia (desplegable) -->
+            <div id="panelAgregarMateria" class="hidden p-4 sm:p-5 rounded-2xl bg-amber-500/5 border border-amber-500/25 space-y-4">
+                <div class="flex items-center justify-between">
+                    <h5 class="text-xs font-black uppercase tracking-wider text-amber-400 flex items-center gap-1.5">
+                        <span class="material-symbols-outlined text-sm">library_add</span>
+                        <span>Agregar Nueva Materia al Plan</span>
+                    </h5>
+                    <button type="button" onclick="toggleFormAgregarMateria(false)" class="text-xs theme-text-muted hover:text-white cursor-pointer">
+                        <span class="material-symbols-outlined text-sm">close</span>
+                    </button>
+                </div>
+
+                <form id="formNuevaMateriaPlan" data-ajax="true" onsubmit="guardarNuevaMateriaPlan(event)" class="space-y-3">
+                    {% csrf_token %}
+                    <div class="grid grid-cols-1 sm:grid-cols-12 gap-3">
+                        <div class="sm:col-span-3 space-y-1">
+                            <label class="block text-[11px] font-bold theme-text-muted uppercase">Año de Carrera *</label>
+                            <select id="nuevaMateriaAnio" name="anio_carrera" required class="w-full px-3 py-2 rounded-xl text-xs border theme-border">
+                                <option value="1">1° Año</option>
+                                <option value="2">2° Año</option>
+                                <option value="3">3° Año</option>
+                                <option value="4">4° Año</option>
+                                <option value="5">5° Año</option>
+                                <option value="6">6° Año</option>
+                            </select>
+                        </div>
+                        <div class="sm:col-span-3 space-y-1">
+                            <label class="block text-[11px] font-bold theme-text-muted uppercase">Código Materia *</label>
+                            <input type="text" id="nuevaMateriaCodigo" name="codigo_materia" required placeholder="Ej. BD-101" class="w-full px-3 py-2 rounded-xl text-xs font-mono uppercase border theme-border">
+                        </div>
+                        <div class="sm:col-span-6 space-y-1">
+                            <label class="block text-[11px] font-bold theme-text-muted uppercase">Nombre de la Asignatura *</label>
+                            <input type="text" id="nuevaMateriaNombre" name="nombre_materia" required placeholder="Ej. Bases de Datos I" class="w-full px-3 py-2 rounded-xl text-xs border theme-border">
+                        </div>
+                    </div>
+
+                    <div class="grid grid-cols-1 sm:grid-cols-12 gap-3">
+                        <div class="sm:col-span-3 space-y-1">
+                            <label class="block text-[11px] font-bold theme-text-muted uppercase">Modalidad</label>
+                            <select id="nuevaMateriaModalidad" name="modalidad" onchange="calcularHsAnualesNueva()" class="w-full px-3 py-2 rounded-xl text-xs border theme-border">
+                                <option value="Anual">Anual</option>
+                                <option value="1° Cuatrimestre">1° Cuatrimestre</option>
+                                <option value="2° Cuatrimestre">2° Cuatrimestre</option>
+                            </select>
+                        </div>
+                        <div class="sm:col-span-2 space-y-1">
+                            <label class="block text-[11px] font-bold theme-text-muted uppercase">Hs Semanales</label>
+                            <input type="number" step="0.5" min="0" max="40" id="nuevaMateriaHsSem" name="carga_horaria_semanal" placeholder="4" oninput="calcularHsAnualesNueva()" class="w-full px-3 py-2 rounded-xl text-xs border theme-border">
+                        </div>
+                        <div class="sm:col-span-2 space-y-1">
+                            <label class="block text-[11px] font-bold theme-text-muted uppercase">Hs Anuales (Auto)</label>
+                            <input type="number" min="0" max="800" id="nuevaMateriaHsAnu" name="carga_horaria_anual" placeholder="128" readonly tabindex="-1" class="w-full px-3 py-2 rounded-xl text-xs border theme-border bg-black/20 text-amber-400 font-bold cursor-not-allowed">
+                        </div>
+                        <div class="sm:col-span-5 space-y-1">
+                            <label class="block text-[11px] font-bold theme-text-muted uppercase">Correlatividades</label>
+                            <input type="text" id="nuevaMateriaCorrelativas" name="correlatividades" placeholder="Ej. Algoritmos I" class="w-full px-3 py-2 rounded-xl text-xs border theme-border">
+                        </div>
+                    </div>
+
+                    <div class="flex items-center justify-end gap-2 pt-2">
+                        <button type="button" onclick="toggleFormAgregarMateria(false)" class="px-3 py-1.5 rounded-xl bg-slate-500/15 hover:bg-slate-500/25 text-xs font-bold theme-text-main cursor-pointer">
+                            Cancelar
+                        </button>
+                        <button type="submit" id="btnGuardarNuevaMateria" style="background-color: #f59e0b; color: #0f172a;" class="px-4 py-1.5 rounded-xl font-bold text-xs shadow-md shadow-amber-500/20 cursor-pointer">
+                            Guardar Materia
+                        </button>
+                    </div>
+                </form>
+            </div>
+
+            <!-- Contenedor dinámico de materias cargadas -->
+            <div id="contenedorMateriasPlanEdit" class="space-y-4">
+                <!-- Se inyecta dinámicamente con JS -->
+            </div>
+        </div>
+    </div>
+</div>
+
+<!-- Modal auxiliar para Editar una Materia existente del Plan -->
+<div id="modalEditarMateriaPlanInline" class="fixed inset-0 hidden flex items-center justify-center p-4" style="z-index: 99999; backdrop-filter: blur(16px); -webkit-backdrop-filter: blur(16px); background-color: rgba(0, 0, 0, 0.85);">
+    <div class="glass-modal w-full max-w-lg rounded-3xl p-6 space-y-4 shadow-2xl border theme-border animate-in zoom-in-95 duration-150">
+        <div class="flex items-center justify-between pb-2 border-b theme-border">
+            <div class="flex items-center gap-2">
+                <span class="material-symbols-outlined text-amber-400">edit_note</span>
+                <h4 class="text-sm font-bold theme-text-main" id="inlineEditMateriaTitulo">Editar Materia</h4>
+            </div>
+            <button type="button" onclick="cerrarInlineEditarMateria()" class="theme-text-muted hover:text-white p-1 cursor-pointer">
+                <span class="material-symbols-outlined text-sm">close</span>
+            </button>
+        </div>
+
+        <form id="formInlineEditarMateria" data-ajax="true" onsubmit="guardarInlineEdicionMateria(event)" class="space-y-3">
+            {% csrf_token %}
+            <input type="hidden" id="inlineEditPlanId" value="">
+            <input type="hidden" id="inlineEditCodigoCarrera" value="">
+
+            <div class="space-y-1">
+                <label class="block text-[11px] font-bold theme-text-muted uppercase">Nombre de la Asignatura *</label>
+                <input type="text" id="inlineEditNombre" required class="w-full px-3 py-2 rounded-xl text-xs font-medium border theme-border">
+            </div>
+
+            <div class="grid grid-cols-2 gap-3">
+                <div class="space-y-1">
+                    <label class="block text-[11px] font-bold theme-text-muted uppercase">Año de Carrera *</label>
+                    <select id="inlineEditAnio" required class="w-full px-3 py-2 rounded-xl text-xs border theme-border">
+                        <option value="1">1° Año</option>
+                        <option value="2">2° Año</option>
+                        <option value="3">3° Año</option>
+                        <option value="4">4° Año</option>
+                        <option value="5">5° Año</option>
+                        <option value="6">6° Año</option>
+                    </select>
+                </div>
+                <div class="space-y-1">
+                    <label class="block text-[11px] font-bold theme-text-muted uppercase">Modalidad</label>
+                    <select id="inlineEditModalidad" onchange="calcularHsAnualesInline()" class="w-full px-3 py-2 rounded-xl text-xs border theme-border">
+                        <option value="Anual">Anual</option>
+                        <option value="1° Cuatrimestre">1° Cuatrimestre</option>
+                        <option value="2° Cuatrimestre">2° Cuatrimestre</option>
+                    </select>
+                </div>
+            </div>
+
+            <div class="grid grid-cols-2 gap-3">
+                <div class="space-y-1">
+                    <label class="block text-[11px] font-bold theme-text-muted uppercase">Hs Semanales</label>
+                    <input type="number" step="0.5" min="0" max="40" id="inlineEditHsSem" oninput="calcularHsAnualesInline()" class="w-full px-3 py-2 rounded-xl text-xs border theme-border">
+                </div>
+                <div class="space-y-1">
+                    <label class="block text-[11px] font-bold theme-text-muted uppercase">Hs Anuales (Auto)</label>
+                    <input type="number" min="0" max="800" id="inlineEditHsAnu" readonly tabindex="-1" class="w-full px-3 py-2 rounded-xl text-xs border theme-border bg-black/20 text-amber-400 font-bold cursor-not-allowed">
+                </div>
+            </div>
+
+            <div class="space-y-1">
+                <label class="block text-[11px] font-bold theme-text-muted uppercase">Correlatividades</label>
+                <input type="text" id="inlineEditCorrelativas" class="w-full px-3 py-2 rounded-xl text-xs border theme-border" placeholder="Ej. Algoritmos I">
+            </div>
+
+            <div class="flex items-center justify-end gap-2 pt-3 border-t theme-border">
+                <button type="button" onclick="cerrarInlineEditarMateria()" class="px-3.5 py-2 rounded-xl bg-slate-500/15 hover:bg-slate-500/25 text-xs font-bold theme-text-main cursor-pointer">
                     Cancelar
                 </button>
-                <button
-                    type="submit"
-                    id="btnGuardarEdicionCarrera"
-                    style="background-color: #f59e0b; color: #0f172a;"
-                    class="px-5 py-2.5 rounded-xl font-black text-xs shadow-md shadow-amber-500/30 transition-all cursor-pointer hover:scale-[1.02]"
-                >
+                <button type="submit" id="btnGuardarInlineMateria" style="background-color: #f59e0b; color: #0f172a;" class="px-4 py-2 rounded-xl font-bold text-xs shadow-md shadow-amber-500/25 cursor-pointer">
                     Guardar Cambios
                 </button>
             </div>
@@ -534,7 +733,7 @@
 </div>
 
 <!-- 3. Modal Eliminar Carrera -->
-<div id="modalEliminarCarrera" class="fixed inset-0 z-[9999] hidden flex items-center justify-center p-4 bg-black/75 backdrop-blur-md">
+<div id="modalEliminarCarrera" class="fixed inset-0 hidden flex items-center justify-center p-4" style="z-index: 99990; backdrop-filter: blur(12px); -webkit-backdrop-filter: blur(12px); background-color: rgba(0, 0, 0, 0.75);">
     <div class="glass-modal w-full max-w-md rounded-3xl p-6 shadow-2xl border theme-border text-center space-y-4 animate-in zoom-in-95 duration-200">
         <div class="w-14 h-14 rounded-2xl bg-rose-500/15 border border-rose-500/30 text-rose-400 flex items-center justify-center mx-auto shadow-lg">
             <span class="material-symbols-outlined text-3xl">warning</span>
@@ -547,7 +746,7 @@
             </p>
         </div>
 
-        <form id="formEliminarCarrera" onsubmit="confirmarEliminarCarrera(event)" class="space-y-4 pt-2">
+        <form id="formEliminarCarrera" data-ajax="true" onsubmit="confirmarEliminarCarrera(event)" class="space-y-4 pt-2">
             {% csrf_token %}
             <input type="hidden" id="eliminarCodigoCarrera" name="codigo_carrera" value="">
 
@@ -708,23 +907,327 @@
         document.getElementById('modalExpedienteCarrera').classList.add('hidden');
     }
 
-    // Modal Editar Carrera
+    // Modal Editar Carrera y Gestión de Materias
+    let huboCambiosEnCarreraOPlan = false;
+    let carreraEditActualCodigo = '';
+
     function abrirEditarCarrera(codigo, nombre, resVigente, resAnterior) {
+        carreraEditActualCodigo = codigo;
+        huboCambiosEnCarreraOPlan = false;
+
         document.getElementById('editCodigoCarrera').value = codigo;
         document.getElementById('labelEditarCodigoCarrera').innerText = 'Código: ' + codigo;
+        document.getElementById('tituloEditarCarrera').innerText = 'Editar: ' + nombre;
         document.getElementById('editNombreCarrera').value = nombre;
         document.getElementById('editResolucionVigente').value = resVigente;
         document.getElementById('editResolucionAnterior').value = resAnterior;
         document.getElementById('errorEdicionCarrera').classList.add('hidden');
+        document.getElementById('alertaMateriasEdit').classList.add('hidden');
+        toggleFormAgregarMateria(false);
+
+        // Pestaña inicial: datos generales
+        cambiarPestanaEditar('datos');
+
+        // Cargar materias de la carrera
+        cargarMateriasCarreraEdit(codigo);
+
         document.getElementById('modalEditarCarrera').classList.remove('hidden');
     }
 
     function cerrarEditarCarrera() {
         document.getElementById('modalEditarCarrera').classList.add('hidden');
+        if (huboCambiosEnCarreraOPlan) {
+            if (typeof window.mostrarCargando === 'function') {
+                window.mostrarCargando('Actualizando...', 'Refrescando cambios en la carrera.');
+            }
+            window.location.reload();
+        }
+    }
+
+    function cambiarPestanaEditar(pestana) {
+        const tabDatos = document.getElementById('tabContenidoDatos');
+        const tabMaterias = document.getElementById('tabContenidoMaterias');
+        const btnDatos = document.getElementById('tabBtnDatosCarrera');
+        const btnMaterias = document.getElementById('tabBtnMateriasCarrera');
+
+        if (pestana === 'datos') {
+            tabDatos.classList.remove('hidden');
+            tabMaterias.classList.add('hidden');
+            btnDatos.className = 'px-4 py-2 rounded-xl text-xs font-bold transition-all cursor-pointer flex items-center gap-2 bg-amber-500/20 text-amber-400 border border-amber-500/30';
+            btnMaterias.className = 'px-4 py-2 rounded-xl text-xs font-bold transition-all cursor-pointer flex items-center gap-2 theme-text-muted hover:theme-text-main';
+        } else {
+            tabDatos.classList.add('hidden');
+            tabMaterias.classList.remove('hidden');
+            btnMaterias.className = 'px-4 py-2 rounded-xl text-xs font-bold transition-all cursor-pointer flex items-center gap-2 bg-amber-500/20 text-amber-400 border border-amber-500/30';
+            btnDatos.className = 'px-4 py-2 rounded-xl text-xs font-bold transition-all cursor-pointer flex items-center gap-2 theme-text-muted hover:theme-text-main';
+        }
+    }
+
+    function toggleFormAgregarMateria(forzar) {
+        const panel = document.getElementById('panelAgregarMateria');
+        const form = document.getElementById('formNuevaMateriaPlan');
+        if (forzar === false) {
+            panel.classList.add('hidden');
+            form.reset();
+        } else if (forzar === true) {
+            panel.classList.remove('hidden');
+        } else {
+            panel.classList.toggle('hidden');
+        }
+    }
+
+    function mostrarAlertaMaterias(tipo, texto) {
+        const alerta = document.getElementById('alertaMateriasEdit');
+        alerta.classList.remove('hidden', 'bg-emerald-500/15', 'text-emerald-300', 'border-emerald-500/30', 'bg-rose-500/15', 'text-rose-300', 'border-rose-500/30');
+        if (tipo === 'exito') {
+            alerta.className = 'p-3 rounded-xl text-xs font-medium bg-emerald-500/15 border border-emerald-500/30 text-emerald-300';
+        } else {
+            alerta.className = 'p-3 rounded-xl text-xs font-medium bg-rose-500/15 border border-rose-500/30 text-rose-300';
+        }
+        alerta.innerText = texto;
+        setTimeout(() => {
+            alerta.classList.add('hidden');
+        }, 5000);
+    }
+
+    function cargarMateriasCarreraEdit(codigo) {
+        const contenedor = document.getElementById('contenedorMateriasPlanEdit');
+        const badge = document.getElementById('badgeCantMateriasEdit');
+        contenedor.innerHTML = '<div class="text-center py-6 space-y-2"><div class="w-6 h-6 border-2 border-amber-500 border-t-transparent rounded-full animate-spin mx-auto"></div><p class="text-xs theme-text-muted">Cargando materias...</p></div>';
+
+        fetch('/carreras/api/' + encodeURIComponent(codigo) + '/detalle/')
+            .then(res => res.json())
+            .then(data => {
+                if (!data.success) {
+                    contenedor.innerHTML = '<div class="p-4 rounded-xl bg-rose-500/10 border border-rose-500/30 text-rose-300 text-xs">Error al cargar materias.</div>';
+                    return;
+                }
+
+                badge.innerText = data.total_materias || '0';
+
+                if (!data.anios || data.anios.length === 0) {
+                    contenedor.innerHTML = '<div class="p-8 text-center rounded-2xl border theme-border theme-text-muted text-xs">Esta carrera aún no posee materias en su plan de estudios. Hacé clic en "+ Nueva Materia" para comenzar a agregarlas.</div>';
+                    return;
+                }
+
+                let html = '';
+                data.anios.forEach(anio => {
+                    html += '<div class="rounded-2xl border theme-border overflow-hidden">';
+                    html += '<div class="p-3 bg-white/5 border-b theme-border flex items-center justify-between">';
+                    html += '<h5 class="text-xs font-black theme-text-main flex items-center gap-1.5"><span class="material-symbols-outlined text-sm text-amber-400">calendar_month</span>' + anio.nombre + ' (' + anio.total_materias_anio + ' materia' + (anio.total_materias_anio !== 1 ? 's' : '') + ')</h5>';
+                    html += '</div>';
+
+                    html += '<div class="overflow-x-auto"><table class="w-full text-left text-xs">';
+                    html += '<thead class="theme-table-head">';
+                    html += '<tr>';
+                    html += '<th class="py-2 px-3">Código</th>';
+                    html += '<th class="py-2 px-3">Asignatura</th>';
+                    html += '<th class="py-2 px-3">Modalidad</th>';
+                    html += '<th class="py-2 px-3 text-center">Hs Sem / Anual</th>';
+                    html += '<th class="py-2 px-3">Correlatividades</th>';
+                    html += '<th class="py-2 px-3 text-right">Acciones</th>';
+                    html += '</tr>';
+                    html += '</thead>';
+                    html += '<tbody class="divide-y theme-table-divide">';
+
+                    anio.materias.forEach(mat => {
+                        html += '<tr class="theme-table-row">';
+                        html += '<td class="py-2.5 px-3 font-mono font-bold text-amber-400 text-[11px]">' + mat.codigo_materia + '</td>';
+                        html += '<td class="py-2.5 px-3 font-bold theme-text-main">' + mat.nombre_materia + '</td>';
+                        html += '<td class="py-2.5 px-3"><span class="badge-pill bg-white/5 border theme-border text-[10px]">' + mat.modalidad + '</span></td>';
+                        html += '<td class="py-2.5 px-3 text-center font-medium">' + (mat.carga_horaria_semanal || 0) + ' hs / ' + (mat.carga_horaria_anual || 0) + ' hs</td>';
+                        html += '<td class="py-2.5 px-3 theme-text-muted text-[11px]">' + (mat.correlatividades || '—') + '</td>';
+                        html += '<td class="py-2.5 px-3 text-right whitespace-nowrap">';
+                        html += '<div class="inline-flex items-center gap-1">';
+                        html += '<button type="button" onclick=\'abrirInlineEditarMateria(' + mat.id_plan + ', "' + codigo + '", ' + anio.numero + ', "' + encodeURIComponent(mat.nombre_materia) + '", "' + mat.modalidad + '", "' + mat.carga_horaria_semanal + '", "' + mat.carga_horaria_anual + '", "' + encodeURIComponent(mat.correlatividades || '') + '")\' class="p-1.5 rounded-lg hover:bg-amber-500/20 text-amber-400 transition-colors cursor-pointer" title="Editar materia"><span class="material-symbols-outlined text-sm">edit</span></button>';
+                        html += '<button type="button" onclick=\'eliminarMateriaPlan(' + mat.id_plan + ', "' + encodeURIComponent(mat.nombre_materia) + '", "' + codigo + '")\' class="p-1.5 rounded-lg hover:bg-rose-500/20 text-rose-400 transition-colors cursor-pointer" title="Eliminar materia"><span class="material-symbols-outlined text-sm">delete</span></button>';
+                        html += '</div>';
+                        html += '</td>';
+                        html += '</tr>';
+                    });
+
+                    html += '</tbody></table></div></div>';
+                });
+
+                contenedor.innerHTML = html;
+            })
+            .catch(err => {
+                contenedor.innerHTML = '<div class="p-4 rounded-xl bg-rose-500/10 border border-rose-500/30 text-rose-300 text-xs">Error de comunicación al cargar materias.</div>';
+            });
+    }
+
+    function calcularHsAnualesNueva() {
+        const modalidad = (document.getElementById('nuevaMateriaModalidad').value || '').trim().toLowerCase();
+        const hsSem = parseFloat(document.getElementById('nuevaMateriaHsSem').value);
+        const hsAnuInput = document.getElementById('nuevaMateriaHsAnu');
+        if (!isNaN(hsSem) && hsSem > 0) {
+            const semanas = modalidad.includes('cuatrimestre') ? 16 : 32;
+            hsAnuInput.value = Math.round(hsSem * semanas);
+        } else {
+            hsAnuInput.value = '';
+        }
+    }
+
+    function calcularHsAnualesInline() {
+        const modalidad = (document.getElementById('inlineEditModalidad').value || '').trim().toLowerCase();
+        const hsSem = parseFloat(document.getElementById('inlineEditHsSem').value);
+        const hsAnuInput = document.getElementById('inlineEditHsAnu');
+        if (!isNaN(hsSem) && hsSem > 0) {
+            const semanas = modalidad.includes('cuatrimestre') ? 16 : 32;
+            hsAnuInput.value = Math.round(hsSem * semanas);
+        } else {
+            hsAnuInput.value = '';
+        }
+    }
+
+    function guardarNuevaMateriaPlan(e) {
+        e.preventDefault();
+        e.stopPropagation();
+        calcularHsAnualesNueva();
+        const codigoCarrera = carreraEditActualCodigo;
+        const form = document.getElementById('formNuevaMateriaPlan');
+        const formData = new FormData(form);
+        const btn = document.getElementById('btnGuardarNuevaMateria');
+
+        btn.disabled = true;
+        btn.innerText = 'Guardando...';
+
+        fetch('/carreras/' + encodeURIComponent(codigoCarrera) + '/materias/agregar/', {
+            method: 'POST',
+            body: formData,
+            headers: {
+                'X-Requested-With': 'XMLHttpRequest'
+            }
+        })
+        .then(res => res.json().then(data => ({ status: res.status, body: data })))
+        .then(result => {
+            btn.disabled = false;
+            btn.innerText = 'Guardar Materia';
+
+            if (result.body.success) {
+                mostrarAlertaMaterias('exito', result.body.mensaje);
+                form.reset();
+                toggleFormAgregarMateria(false);
+                huboCambiosEnCarreraOPlan = true;
+                cargarMateriasCarreraEdit(codigoCarrera);
+            } else {
+                mostrarAlertaMaterias('error', result.body.mensaje || 'Error al incorporar la materia.');
+            }
+        })
+        .catch(err => {
+            btn.disabled = false;
+            btn.innerText = 'Guardar Materia';
+            mostrarAlertaMaterias('error', 'Error de conexión con el servidor.');
+        });
+    }
+
+    function abrirInlineEditarMateria(id_plan, codigoCarrera, anio, nombreEnc, modalidad, hsSem, hsAnu, corrEnc) {
+        document.getElementById('inlineEditPlanId').value = id_plan;
+        document.getElementById('inlineEditCodigoCarrera').value = codigoCarrera;
+        document.getElementById('inlineEditNombre').value = decodeURIComponent(nombreEnc);
+        document.getElementById('inlineEditAnio').value = anio;
+        document.getElementById('inlineEditModalidad').value = modalidad || 'Anual';
+        document.getElementById('inlineEditHsSem').value = hsSem || '';
+        document.getElementById('inlineEditCorrelativas').value = decodeURIComponent(corrEnc);
+        document.getElementById('inlineEditMateriaTitulo').innerText = 'Editar: ' + decodeURIComponent(nombreEnc);
+        
+        calcularHsAnualesInline();
+        if (!document.getElementById('inlineEditHsAnu').value && hsAnu) {
+            document.getElementById('inlineEditHsAnu').value = hsAnu;
+        }
+
+        document.getElementById('modalEditarMateriaPlanInline').classList.remove('hidden');
+    }
+
+    function cerrarInlineEditarMateria() {
+        document.getElementById('modalEditarMateriaPlanInline').classList.add('hidden');
+    }
+
+    function guardarInlineEdicionMateria(e) {
+        e.preventDefault();
+        e.stopPropagation();
+        calcularHsAnualesInline();
+
+        const id_plan = document.getElementById('inlineEditPlanId').value;
+        const codigoCarrera = document.getElementById('inlineEditCodigoCarrera').value;
+        const form = document.getElementById('formInlineEditarMateria');
+        const formData = new FormData(form);
+        formData.append('nombre_materia', document.getElementById('inlineEditNombre').value);
+        formData.append('anio_carrera', document.getElementById('inlineEditAnio').value);
+        formData.append('modalidad', document.getElementById('inlineEditModalidad').value);
+        formData.append('carga_horaria_semanal', document.getElementById('inlineEditHsSem').value);
+        formData.append('carga_horaria_anual', document.getElementById('inlineEditHsAnu').value);
+        formData.append('correlatividades', document.getElementById('inlineEditCorrelativas').value);
+
+        const btn = document.getElementById('btnGuardarInlineMateria');
+        btn.disabled = true;
+        btn.innerText = 'Guardando...';
+
+        fetch('/carreras/' + encodeURIComponent(codigoCarrera) + '/materias/' + id_plan + '/editar/', {
+            method: 'POST',
+            body: formData,
+            headers: {
+                'X-Requested-With': 'XMLHttpRequest'
+            }
+        })
+        .then(res => res.json().then(data => ({ status: res.status, body: data })))
+        .then(result => {
+            btn.disabled = false;
+            btn.innerText = 'Guardar Cambios';
+
+            if (result.body.success) {
+                cerrarInlineEditarMateria();
+                mostrarAlertaMaterias('exito', result.body.mensaje);
+                huboCambiosEnCarreraOPlan = true;
+                cargarMateriasCarreraEdit(codigoCarrera);
+            } else {
+                alert(result.body.mensaje || 'Error al actualizar la materia.');
+            }
+        })
+        .catch(err => {
+            btn.disabled = false;
+            btn.innerText = 'Guardar Cambios';
+            alert('Error de conexión al actualizar la materia.');
+        });
+    }
+
+    function eliminarMateriaPlan(id_plan, nombreEnc, codigoCarrera) {
+        const nombre = decodeURIComponent(nombreEnc);
+        if (!confirm('¿Confirmás la eliminación de la materia "' + nombre + '" del plan de estudios?')) {
+            return;
+        }
+
+        const formData = new FormData();
+        const csrfInput = document.querySelector('#formEditarCarrera [name=csrfmiddlewaretoken]');
+        if (csrfInput) {
+            formData.append('csrfmiddlewaretoken', csrfInput.value);
+        }
+
+        fetch('/carreras/' + encodeURIComponent(codigoCarrera) + '/materias/' + id_plan + '/eliminar/', {
+            method: 'POST',
+            body: formData,
+            headers: {
+                'X-Requested-With': 'XMLHttpRequest'
+            }
+        })
+        .then(res => res.json().then(data => ({ status: res.status, body: data })))
+        .then(result => {
+            if (result.body.success) {
+                mostrarAlertaMaterias('exito', result.body.mensaje);
+                huboCambiosEnCarreraOPlan = true;
+                cargarMateriasCarreraEdit(codigoCarrera);
+            } else {
+                mostrarAlertaMaterias('error', result.body.mensaje || 'No se pudo eliminar la materia.');
+            }
+        })
+        .catch(err => {
+            mostrarAlertaMaterias('error', 'Error en la comunicación con el servidor.');
+        });
     }
 
     function guardarEdicionCarrera(e) {
         e.preventDefault();
+        e.stopPropagation();
         const codigo = document.getElementById('editCodigoCarrera').value;
         const form = document.getElementById('formEditarCarrera');
         const formData = new FormData(form);
@@ -744,14 +1247,11 @@
         .then(res => res.json().then(data => ({ status: res.status, body: data })))
         .then(result => {
             btn.disabled = false;
-            btn.innerText = 'Guardar Cambios';
+            btn.innerText = 'Guardar Cambios de Carrera';
 
             if (result.body.success) {
+                huboCambiosEnCarreraOPlan = true;
                 cerrarEditarCarrera();
-                if (typeof window.mostrarCargando === 'function') {
-                    window.mostrarCargando('Actualizando...', result.body.mensaje);
-                }
-                window.location.reload();
             } else {
                 errorCard.innerText = result.body.mensaje || 'Error al guardar los cambios.';
                 errorCard.classList.remove('hidden');
@@ -759,7 +1259,7 @@
         })
         .catch(err => {
             btn.disabled = false;
-            btn.innerText = 'Guardar Cambios';
+            btn.innerText = 'Guardar Cambios de Carrera';
             errorCard.innerText = 'Error en la conexión. Intente nuevamente.';
             errorCard.classList.remove('hidden');
         });
@@ -780,6 +1280,7 @@
 
     function confirmarEliminarCarrera(e) {
         e.preventDefault();
+        e.stopPropagation();
         const codigo = document.getElementById('eliminarCodigoCarrera').value;
         const form = document.getElementById('formEliminarCarrera');
         const formData = new FormData(form);

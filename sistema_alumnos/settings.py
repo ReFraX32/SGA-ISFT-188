@@ -40,6 +40,12 @@ INSTALLED_APPS = [
     'gestion',
     'carga_alumnos',
     'carreras',
+    'portal',
+]
+
+AUTHENTICATION_BACKENDS = [
+    'login.backends.DNIAuthBackend',
+    'django.contrib.auth.backends.ModelBackend',
 ]
 
 LOGIN_URL = 'login:login'

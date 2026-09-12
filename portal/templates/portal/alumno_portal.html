@@ -1,0 +1,302 @@
+{% extends 'gestion/base.html' %}
+
+{% block title %}Mi Portal de Estudiante — {{ persona.apellido }}, {{ persona.nombre }} | ISFT 188{% endblock %}
+
+{% block content %}
+<div class="space-y-6 max-w-6xl mx-auto pb-12">
+
+    <!-- 1. Cabecera de Bienvenida y Filiación del Estudiante -->
+    <div class="glass-card rounded-3xl p-6 sm:p-8 border theme-border shadow-2xl relative overflow-hidden">
+        <div class="flex flex-col md:flex-row md:items-center justify-between gap-6 pb-6 border-b theme-border">
+            <div class="flex items-center gap-4">
+                <div class="w-16 h-16 rounded-2xl bg-gradient-to-tr from-indigo-600 to-purple-600 text-white flex items-center justify-center shrink-0 shadow-lg shadow-indigo-600/25">
+                    <span class="material-symbols-outlined text-3xl">school</span>
+                </div>
+                <div>
+                    <div class="flex items-center gap-2 flex-wrap">
+                        <span class="badge-pill bg-indigo-500/15 border border-indigo-500/30 text-indigo-400 text-xs font-bold uppercase tracking-wider">
+                            Portal del Estudiante
+                        </span>
+                        {% if alumno.legajo %}
+                        <span class="badge-pill bg-white/5 border theme-border text-xs font-mono font-bold theme-text-muted">
+                            Legajo: {{ alumno.legajo }}
+                        </span>
+                        {% endif %}
+                    </div>
+                    <h2 class="text-xl sm:text-3xl font-black theme-text-main mt-1">
+                        {{ persona.apellido }}, {{ persona.nombre }}
+                    </h2>
+                    <p class="text-xs theme-text-muted">
+                        DNI {{ dni_formateado }}{% if persona.cuil %} • CUIL {{ cuil_formateado }}{% endif %}
+                    </p>
+                </div>
+            </div>
+
+            <!-- Botón de Imprimir Ficha Oficial -->
+            <div class="shrink-0">
+                <a 
+                    href="{% url 'gestion:imprimir_estado_academico' persona.dni %}"
+                    target="_blank"
+                    class="w-full sm:w-auto inline-flex items-center justify-center gap-2 px-5 py-2.5 rounded-xl bg-indigo-600 hover:bg-indigo-500 text-white font-bold text-xs shadow-md shadow-indigo-600/25 transition-all cursor-pointer hover:scale-[1.02]"
+                    title="Imprimir o Descargar mi Analítico Oficial"
+                >
+                    <span class="material-symbols-outlined text-base">print</span>
+                    <span>Imprimir mi Analítico</span>
+                </a>
+            </div>
+        </div>
+
+        <!-- Grilla de Datos Personales del Estudiante -->
+        <div class="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-4 gap-4 pt-6 text-xs">
+            <div>
+                <span class="block text-[11px] font-semibold theme-text-muted uppercase tracking-wider">Fecha de Nacimiento</span>
+                <span class="font-bold theme-text-main">
+                    {{ persona.fecha_nacimiento|date:"d/m/Y"|default:"Sin registrar" }}
+                    {% if persona.edad %}<span class="text-indigo-400 font-normal">({{ persona.edad }} años)</span>{% endif %}
+                </span>
+            </div>
+            <div>
+                <span class="block text-[11px] font-semibold theme-text-muted uppercase tracking-wider">Identidad de Género</span>
+                <span class="font-bold theme-text-main">{{ persona.genero_descripcion }}</span>
+            </div>
+            <div>
+                <span class="block text-[11px] font-semibold theme-text-muted uppercase tracking-wider">Nacionalidad</span>
+                <span class="font-bold theme-text-main">{{ persona.nacionalidad|default:"Argentina" }}</span>
+            </div>
+            <div>
+                <span class="block text-[11px] font-semibold theme-text-muted uppercase tracking-wider">Localidad de Residencia</span>
+                <span class="font-bold theme-text-main">{{ persona.localidad|default:"Sin registrar" }}</span>
+            </div>
+            <div>
+                <span class="block text-[11px] font-semibold theme-text-muted uppercase tracking-wider">Correo Electrónico</span>
+                <span class="font-bold theme-text-main font-mono break-all">{{ persona.mail|default:"Sin registrar" }}</span>
+            </div>
+            <div>
+                <span class="block text-[11px] font-semibold theme-text-muted uppercase tracking-wider">Teléfono / Celular</span>
+                <span class="font-bold theme-text-main font-mono">{{ telefono_formateado|default:"Sin registrar" }}</span>
+            </div>
+            <div class="sm:col-span-2">
+                <span class="block text-[11px] font-semibold theme-text-muted uppercase tracking-wider">Domicilio Declarado</span>
+                <span class="font-bold theme-text-main">{{ persona.domicilio|default:"Sin registrar" }}</span>
+            </div>
+        </div>
+    </div>
+
+    <!-- 2. Tarjetas de Estadísticas / Resumen Académico -->
+    <div class="grid grid-cols-2 sm:grid-cols-4 gap-4">
+        <!-- Promedio General -->
+        <div class="glass-card p-4 rounded-2xl border theme-border shadow-md text-center">
+            <div class="text-[10px] sm:text-xs theme-text-muted font-bold uppercase tracking-wider">Promedio General</div>
+            <div class="text-2xl sm:text-3xl font-black text-indigo-500 mt-1">
+                {{ promedio_general|default:"-" }}
+            </div>
+            <span class="text-[10px] theme-text-muted">Calificaciones registradas</span>
+        </div>
+
+        <!-- Asistencia Promedio -->
+        <div class="glass-card p-4 rounded-2xl border theme-border shadow-md text-center">
+            <div class="text-[10px] sm:text-xs theme-text-muted font-bold uppercase tracking-wider">Asistencia Global</div>
+            <div class="text-2xl sm:text-3xl font-black text-emerald-400 mt-1">
+                {% if asistencia_promedio %}{{ asistencia_promedio }}%{% else %}-{% endif %}
+            </div>
+            <span class="text-[10px] theme-text-muted">Promedio de presencias</span>
+        </div>
+
+        <!-- Promocionadas / Regulares -->
+        <div class="glass-card p-4 rounded-2xl border theme-border shadow-md text-center">
+            <div class="text-[10px] sm:text-xs theme-text-muted font-bold uppercase tracking-wider">Promocionadas</div>
+            <div class="text-2xl sm:text-3xl font-black text-amber-400 mt-1">
+                {{ total_promocionadas }}
+            </div>
+            <span class="text-[10px] theme-text-muted">{{ total_regulares }} regular{{ total_regulares|pluralize:"es" }}</span>
+        </div>
+
+        <!-- Total Materias -->
+        <div class="glass-card p-4 rounded-2xl border theme-border shadow-md text-center">
+            <div class="text-[10px] sm:text-xs theme-text-muted font-bold uppercase tracking-wider">Materias Cursadas</div>
+            <div class="text-2xl sm:text-3xl font-black theme-text-main mt-1">
+                {{ total_materias_cursadas }}
+            </div>
+            <span class="text-[10px] theme-text-muted">Asignaturas registradas</span>
+        </div>
+    </div>
+
+    <!-- 3. Detalle de Carreras y Asignaturas Ordenadas por Año -->
+    <div class="space-y-6">
+        <div class="flex items-center gap-2">
+            <span class="material-symbols-outlined text-indigo-500 text-xl">auto_stories</span>
+            <h3 class="text-lg font-black theme-text-main">
+                Trayectoria Curricular y Calificaciones
+            </h3>
+        </div>
+
+        {% if not carreras %}
+        <div class="glass-card rounded-3xl p-10 text-center border theme-border space-y-3">
+            <span class="material-symbols-outlined text-4xl text-slate-500">menu_book</span>
+            <h4 class="text-sm font-bold theme-text-main">Aún no registrás cursadas activas</h4>
+            <p class="text-xs theme-text-muted max-w-md mx-auto">
+                Tus inscripciones y calificaciones aparecerán aquí una vez registradas por la secretaría académica.
+            </p>
+        </div>
+        {% else %}
+
+        {% for c_info in carreras %}
+        <div class="glass-card rounded-3xl border theme-border shadow-xl overflow-hidden space-y-4 p-5 sm:p-6">
+            <!-- Encabezado de la Carrera -->
+            <div class="flex flex-col sm:flex-row sm:items-center justify-between gap-3 pb-4 border-b theme-border">
+                <div>
+                    <span class="text-[10px] uppercase tracking-widest text-indigo-400 font-bold block">
+                        Carrera / Tecnicatura Superior
+                    </span>
+                    <h4 class="text-base sm:text-lg font-black theme-text-main">
+                        {{ c_info.nombre_carrera }}
+                    </h4>
+                    <span class="text-xs theme-text-muted">
+                        Resolución Ministerial: <strong class="theme-text-main">{{ c_info.resolucion }}</strong>
+                    </span>
+                </div>
+                <div class="shrink-0">
+                    <span class="badge-pill bg-indigo-500/10 border border-indigo-500/30 text-indigo-400 text-xs font-bold">
+                        {{ c_info.total_materias_carrera }} asignatura{{ c_info.total_materias_carrera|pluralize }}
+                    </span>
+                </div>
+            </div>
+
+            <!-- Años Curriculares de la Carrera -->
+            <div class="space-y-5">
+                {% for anio_info in c_info.anios %}
+                <div class="rounded-2xl border theme-border overflow-hidden" style="background: var(--card-inner-bg);">
+                    <!-- Barra de Título del Año -->
+                    <div class="px-4 py-3 border-b theme-border flex items-center justify-between bg-white/[0.03]">
+                        <div class="flex items-center gap-2">
+                            <span class="w-2 h-2 rounded-full bg-indigo-500"></span>
+                            <h5 class="text-xs font-black uppercase tracking-wider theme-text-main">
+                                {{ anio_info.titulo }}
+                            </h5>
+                        </div>
+                        <span class="text-[11px] theme-text-muted font-semibold">
+                            {{ anio_info.materias|length }} materia{{ anio_info.materias|length|pluralize }}
+                        </span>
+                    </div>
+
+                    <!-- Tabla de Materias del Año -->
+                    <div class="w-full overflow-x-auto">
+                        <table class="w-full text-left text-xs">
+                            <thead class="theme-table-header uppercase text-[10px] tracking-wider font-bold border-b theme-border">
+                                <tr>
+                                    <th class="py-3 px-4 min-w-[200px]">Materia / Código</th>
+                                    <th class="py-3 px-4 min-w-[160px]">Docente a Cargo</th>
+                                    <th class="py-3 px-4 min-w-[120px]">Comisión</th>
+                                    <th class="py-3 px-4 text-center min-w-[90px]">Asistencia</th>
+                                    <th class="py-3 px-4 min-w-[180px]">Evaluaciones</th>
+                                    <th class="py-3 px-4 text-center min-w-[100px]">Condición</th>
+                                    <th class="py-3 px-4 text-center min-w-[80px]">Nota Final</th>
+                                </tr>
+                            </thead>
+                            <tbody class="theme-table-divide font-medium">
+                                {% for m_item in anio_info.materias %}
+                                <tr class="theme-table-row">
+                                    <!-- Materia -->
+                                    <td class="py-3 px-4">
+                                        <div class="font-bold theme-text-main leading-snug">
+                                            {{ m_item.materia.nombre_materia }}
+                                        </div>
+                                        <span class="font-mono text-[10px] theme-text-muted block">
+                                            {{ m_item.materia.codigo_materia }} • {{ m_item.plan.modalidad|default:"Anual" }}
+                                        </span>
+                                    </td>
+
+                                    <!-- Docente -->
+                                    <td class="py-3 px-4">
+                                        <span class="text-xs theme-text-main block leading-tight">
+                                            {{ m_item.docentes_str }}
+                                        </span>
+                                    </td>
+
+                                    <!-- Comisión / Horarios -->
+                                    <td class="py-3 px-4">
+                                        <span class="font-bold theme-text-main block">
+                                            Comisión {{ m_item.comision.codigo_comision }}
+                                        </span>
+                                        <span class="text-[10px] theme-text-muted block">
+                                            {{ m_item.turno }} • Div. {{ m_item.division }} ({{ m_item.anio_lectivo }})
+                                        </span>
+                                    </td>
+
+                                    <!-- Asistencia -->
+                                    <td class="py-3 px-4 text-center">
+                                        {% if m_item.asistencia_val is not None %}
+                                            <span class="font-bold text-xs {% if m_item.asistencia_val >= 80 %}text-emerald-400{% elif m_item.asistencia_val >= 60 %}text-amber-400{% else %}text-rose-400{% endif %}">
+                                                {{ m_item.asistencia }}
+                                            </span>
+                                        {% else %}
+                                            <span class="theme-text-muted text-[11px] italic">Sin reg.</span>
+                                        {% endif %}
+                                    </td>
+
+                                    <!-- Evaluaciones Parciales -->
+                                    <td class="py-3 px-4">
+                                        {% if m_item.evaluaciones_parciales %}
+                                        <div class="flex flex-wrap gap-1.5">
+                                            {% for ev in m_item.evaluaciones_parciales %}
+                                            <span class="px-2 py-0.5 rounded-lg text-[10px] font-semibold bg-white/5 border theme-border theme-text-main" title="Fecha: {{ ev.fecha|date:'d/m/Y'|default:'-' }}">
+                                                {{ ev.instancia }}: <strong class="{% if ev.nota >= 7 %}text-emerald-400{% elif ev.nota >= 4 %}text-amber-400{% else %}text-rose-400{% endif %} font-mono">{{ ev.nota|default:"-" }}</strong>
+                                            </span>
+                                            {% endfor %}
+                                        </div>
+                                        {% else %}
+                                        <span class="text-[11px] theme-text-muted italic">Sin parciales cargados</span>
+                                        {% endif %}
+                                    </td>
+
+                                    <!-- Situación Final -->
+                                    <td class="py-3 px-4 text-center whitespace-nowrap">
+                                        {% if m_item.situacion == 'Promocionado' %}
+                                        <span class="badge-pill bg-emerald-500/15 border border-emerald-500/30 text-emerald-400 text-[11px] font-bold">
+                                            Promocionado
+                                        </span>
+                                        {% elif m_item.situacion == 'Regular' %}
+                                        <span class="badge-pill bg-amber-500/15 border border-amber-500/30 text-amber-400 text-[11px] font-bold">
+                                            Regular
+                                        </span>
+                                        {% elif m_item.situacion == 'Final' %}
+                                        <span class="badge-pill bg-indigo-500/15 border border-indigo-500/30 text-indigo-400 text-[11px] font-bold">
+                                            A Final
+                                        </span>
+                                        {% elif m_item.situacion == 'Libre' %}
+                                        <span class="badge-pill bg-rose-500/15 border border-rose-500/30 text-rose-400 text-[11px] font-bold">
+                                            Libre / Recursa
+                                        </span>
+                                        {% else %}
+                                        <span class="badge-pill bg-purple-500/15 border border-purple-500/30 text-purple-400 text-[11px] font-bold">
+                                            {{ m_item.situacion|default:"En Cursada" }}
+                                        </span>
+                                        {% endif %}
+                                    </td>
+
+                                    <!-- Nota Final -->
+                                    <td class="py-3 px-4 text-center font-mono whitespace-nowrap">
+                                        {% if m_item.nota_final is not None %}
+                                        <span class="text-base font-black text-indigo-500">
+                                            {{ m_item.nota_final }}
+                                        </span>
+                                        {% else %}
+                                        <span class="theme-text-muted text-[11px] italic">-</span>
+                                        {% endif %}
+                                    </td>
+                                </tr>
+                                {% endfor %}
+                            </tbody>
+                        </table>
+                    </div>
+                </div>
+                {% endfor %}
+            </div>
+        </div>
+        {% endfor %}
+
+        {% endif %}
+    </div>
+
+</div>
+{% endblock %}

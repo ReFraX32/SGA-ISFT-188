@@ -6,6 +6,7 @@ from django.contrib import messages
 from django.contrib.auth.decorators import login_required
 from django.db import IntegrityError
 from django.apps import apps
+from login.decorators import directivo_required
 from .models import Alumno
 from .forms import AlumnoForm
 
@@ -25,7 +26,7 @@ def get_alumnos_sesion(request: Any) -> List[Dict[str, Any]]:
     return []
 
 
-@login_required(login_url='login:login')
+@directivo_required
 def index(request: Any) -> Any:
     """
     Redirige de forma directa al formulario de carga de alumnos (Paso 1).
@@ -33,7 +34,7 @@ def index(request: Any) -> Any:
     return redirect(reverse('carga_alumnos:paso1_carga'))
 
 
-@login_required(login_url='login:login')
+@directivo_required
 def paso1_carga(request: Any) -> Any:
     """
     Paso 1: Formulario directo de ingreso secuencial y validado de datos del alumno.
@@ -112,7 +113,7 @@ def paso1_carga(request: Any) -> Any:
     return render(request, 'carga_alumnos/paso1_carga.html', context)
 
 
-@login_required(login_url='login:login')
+@directivo_required
 def paso2_confirmacion(request: Any) -> Any:
     """
     Paso 2: Previsualización en matriz de datos completa y confirmación.

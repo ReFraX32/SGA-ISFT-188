@@ -116,7 +116,7 @@
                                 <th scope="col" class="py-2.5 px-3">Nombre de la Asignatura *</th>
                                 <th scope="col" class="py-2.5 px-3 w-32">Modalidad</th>
                                 <th scope="col" class="py-2.5 px-3 w-24 text-center">Hs. Semanales</th>
-                                <th scope="col" class="py-2.5 px-3 w-24 text-center">Hs. Anuales</th>
+                                <th scope="col" class="py-2.5 px-3 w-24 text-center">Hs. Anuales (Auto)</th>
                                 <th scope="col" class="py-2.5 px-3 w-48">Correlatividades</th>
                                 <th scope="col" class="py-2.5 px-2 w-12 text-center">Acción</th>
                             </tr>
@@ -167,8 +167,10 @@
                                         type="number" 
                                         min="0" 
                                         name="materia_hs_anual[]" 
-                                        placeholder="Hs" 
-                                        class="w-full px-2 py-1.5 rounded-xl text-xs text-center border theme-border shadow-sm"
+                                        placeholder="Auto" 
+                                        readonly 
+                                        tabindex="-1"
+                                        class="w-full px-2 py-1.5 rounded-xl text-xs text-center border theme-border shadow-sm bg-white/5 font-bold text-amber-400 cursor-not-allowed"
                                     >
                                 </td>
                                 <td class="py-2 px-3">
@@ -307,8 +309,10 @@
                     type="number" 
                     min="0" 
                     name="materia_hs_anual[]" 
-                    placeholder="Hs" 
-                    class="w-full px-2 py-1.5 rounded-xl text-xs text-center border theme-border shadow-sm"
+                    placeholder="Auto" 
+                    readonly 
+                    tabindex="-1"
+                    class="w-full px-2 py-1.5 rounded-xl text-xs text-center border theme-border shadow-sm bg-white/5 font-bold text-amber-400 cursor-not-allowed"
                 >
             </td>
             <td class="py-2 px-3">
@@ -393,7 +397,7 @@
                             <th scope="col" class="py-2.5 px-3">Nombre de la Asignatura *</th>
                             <th scope="col" class="py-2.5 px-3 w-32">Modalidad</th>
                             <th scope="col" class="py-2.5 px-3 w-24 text-center">Hs. Semanales</th>
-                            <th scope="col" class="py-2.5 px-3 w-24 text-center">Hs. Anuales</th>
+                            <th scope="col" class="py-2.5 px-3 w-24 text-center">Hs. Anuales (Auto)</th>
                             <th scope="col" class="py-2.5 px-3 w-48">Correlatividades</th>
                             <th scope="col" class="py-2.5 px-2 w-12 text-center">Acción</th>
                         </tr>
@@ -443,8 +447,10 @@
                                     type="number" 
                                     min="0" 
                                     name="materia_hs_anual[]" 
-                                    placeholder="Hs" 
-                                    class="w-full px-2 py-1.5 rounded-xl text-xs text-center border theme-border shadow-sm"
+                                    placeholder="Auto" 
+                                    readonly 
+                                    tabindex="-1"
+                                    class="w-full px-2 py-1.5 rounded-xl text-xs text-center border theme-border shadow-sm bg-white/5 font-bold text-amber-400 cursor-not-allowed"
                                 >
                             </td>
                             <td class="py-2 px-3">
@@ -475,8 +481,40 @@
         actualizarContadores();
     }
 
+    function calcularHsFila(tr) {
+        if (!tr) return;
+        const modSelect = tr.querySelector('select[name="materia_modalidad[]"]');
+        const semInput = tr.querySelector('input[name="materia_hs_semanal[]"]');
+        const anuInput = tr.querySelector('input[name="materia_hs_anual[]"]');
+        if (!modSelect || !semInput || !anuInput) return;
+
+        const mod = (modSelect.value || '').trim().toLowerCase();
+        const hsSem = parseFloat(semInput.value);
+        if (!isNaN(hsSem) && hsSem > 0) {
+            const semanas = mod.includes('cuatrimestre') ? 16 : 32;
+            anuInput.value = Math.round(hsSem * semanas);
+        } else {
+            anuInput.value = '';
+        }
+    }
+
+    document.addEventListener('input', function(e) {
+        if (e.target && e.target.name === 'materia_hs_semanal[]') {
+            calcularHsFila(e.target.closest('tr'));
+        }
+    });
+
+    document.addEventListener('change', function(e) {
+        if (e.target && e.target.name === 'materia_modalidad[]') {
+            calcularHsFila(e.target.closest('tr'));
+        }
+    });
+
     document.addEventListener('DOMContentLoaded', function() {
         actualizarContadores();
+        document.querySelectorAll('.theme-table-row').forEach(tr => {
+            calcularHsFila(tr);
+        });
     });
 </script>
 {% endblock %}
